@@ -120,3 +120,17 @@ def test_fallback_answers_policy_questions_with_policy_text():
     product = {"product_name": "Saree", "color": "Red", "brand": "X", "price": 999}
     assert _fallback_reply([product], [], ["COD is available."], policy_question=True) == "COD is available."
     assert "Saree" in _fallback_reply([product], [], ["COD is available."], policy_question=False)
+
+
+def test_policy_only_question_shows_no_product_cards(temp_db, monkeypatch):
+    from zaldi.services import chat_service
+
+    monkeypatch.setattr(chat_service, "_compose", lambda *a, **k: "COD is available.")
+    monkeypatch.setattr("zaldi.ai.tools.policy_search.search_policies", lambda q, k=3: ["COD up to Rs. 15,000"])
+    from zaldi.db import init_db
+
+    init_db()
+    out = chat_service._discover("Is COD available?", "11111111-1111-4111-8111-111111111111")
+    assert out["products"] == [] and out["response"] == "COD is available."
+    shopping = chat_service._discover("red sarees under 5000", "11111111-1111-4111-8111-111111111111")
+    assert shopping["products"]

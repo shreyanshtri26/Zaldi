@@ -73,8 +73,10 @@ def _compose(query: str, products: list[dict], dropped: list[str], policies: lis
 
 
 def _discover(query: str, session_id: str) -> dict:
-    filters = merge_defaults(extract_filters(query), preferences.preference_filters(session_id))
-    products, dropped = search(query, filters)
+    asked = extract_filters(query)
+    policy_only = bool(POLICY_WORDS.search(query)) and asked.is_empty()  # "Is COD available?" names no product
+    filters = merge_defaults(asked, preferences.preference_filters(session_id))
+    products, dropped = ([], []) if policy_only else search(query, filters)
     cart.remember_results(session_id, [p["id"] for p in products])
     policies: list[str] = []
     if POLICY_WORDS.search(query) or not products:
