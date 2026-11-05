@@ -1,187 +1,877 @@
 # Zaldi
 
-An AI shopping assistant for an Indian ethnic-fashion store (sarees, kurtas, lehengas, sherwanis, footwear, jewellery), with a built-in **CMS** so store staff can edit products and policies without touching code.
+**An AI-powered shopping assistant and content management platform for
+Indian ethnic fashion.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+Zaldi helps customers discover products, compare options, understand
+store policies, and prepare purchases through a conversational
+interface. It also includes a built-in CMS that allows store
+administrators to manage products, policies, storefront content, and
+assistant prompts without changing application code.
 
-## Features
+The platform is designed for an Indian ethnic-fashion storefront,
+including categories such as sarees, kurtas, lehengas, sherwanis,
+footwear, and jewellery. It supports INR pricing and customer
+conversations in English, Hindi, and Hinglish.
 
-- **Chat** (React): a raised graphite top bar (no sidebar) with **New chat** on the left and History, assistant settings, cart and apps on the right, a 3D lime **Zaldi orb** that reflects what the assistant is doing (idle, listening, thinking, replying, offline), suggestion chips, product cards, a cart panel and a composer with photo search and **voice input** (browser speech recognition, shown only where supported). While a reply is prepared a status box shows "Zaldi is responding" with a live plan, and a note appears if it takes longer than usual. Ask about products, prices in INR, sizes, COD/UPI, delivery, returns, GST invoices. All UI text is English; the assistant replies in the customer's language (English, Hindi or Hinglish), with a live plan while it works and a collapsible tool card under each answer.
-- **Admin panel** (`/admin`): overview, products (table/grid, category chips, sort, slide-over editor), policies, chat transcripts and `Ctrl+K` search. Light and dark themes in the Obsidian Black x Electric Lime palette; the overview cards link straight to the matching list.
-- **CMS-managed content** (admin → Content): the welcome greeting ("Hi there, Zaldi."), heading (wrap words in `*stars*` to highlight them), text, brand name and tagline, the five brand colours (which also recolour the logo and tab icon), the quick-action cards on the empty chat, and the assistant's prompts can all be edited without code. Every value starts as a built-in default; clearing a field or pressing "Reset to default" restores it. Prompt edits apply to the very next customer message.
-- **Agentic shopping pipeline** (see `docs/IMPLEMENTATION_PLAN.md`): guardrails -> optional photo (vision) -> semantic router (products / cart / checkout / chitchat) -> entity extraction -> hybrid search -> cart -> browser-automated checkout that **stops for your confirmation**. The LLM only words the final reply; everything else is deterministic and testable offline.
-- **Hybrid search**: free text becomes structured filters (budget, colour, size, category, brand, gender; English/Hinglish), applied as hard SQL filters, then ranked by FAISS vector similarity + lexical match (RRF). Saved shopper preferences are injected automatically; if nothing matches, soft filters are relaxed and the reply says so.
-- **Cart and checkout**: stock-checked cart, shipping/coupon pricing from the store policy, then a Playwright run fills a multi-step checkout (built-in demo storefront at `/store-sim`, or point `STOREFRONT_URL` at another) and halts before payment. The customer confirms with a signed, expiring, single-use token. Addresses are typed into a form, never into the chat/LLM; no card or UPI details are ever handled.
-- **Guardrails**: PII (phone, email, Aadhaar, PAN, card, UPI) is redacted before any LLM call and from logs; prompt-injection messages are refused before any model runs; replies are scrubbed for PII and system-prompt leaks.
-- **Embeddings**: Gemini by default; with no `GOOGLE_API_KEY` (or `EMBEDDING_PROVIDER=local`) an offline hashing embedder keeps everything working (word-level matching only).
+[![License:
+MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](https://www.python.org/)
+[![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Build-Vite-646CFF.svg)](https://vite.dev/)
+
+------------------------------------------------------------------------
+
+## Contents
+
+-   [Overview](#overview)
+-   [Key capabilities](#key-capabilities)
+-   [Customer experience](#customer-experience)
+-   [Admin CMS](#admin-cms)
+-   [AI and product discovery](#ai-and-product-discovery)
+-   [Cart and checkout workflow](#cart-and-checkout-workflow)
+-   [Security and privacy](#security-and-privacy)
+-   [Technology stack](#technology-stack)
+-   [System architecture](#system-architecture)
+-   [Design system](#design-system)
+-   [Project structure](#project-structure)
+-   [Getting started](#getting-started)
+-   [Configuration](#configuration)
+-   [Running in development](#running-in-development)
+-   [Database](#database)
+-   [API reference](#api-reference)
+-   [Testing](#testing)
+-   [Deployment](#deployment)
+-   [Troubleshooting](#troubleshooting)
+-   [Current limitations](#current-limitations)
+-   [Contributing](#contributing)
+-   [License](#license)
+
+## Overview
+
+Zaldi brings product discovery, shopping assistance, and storefront
+content management into one application.
+
+Customers can ask natural-language questions about products, prices,
+sizes, availability, delivery, cash on delivery, UPI, returns, and GST
+invoices. The assistant interprets the request, searches the product
+catalogue, and presents relevant results in a conversational shopping
+experience.
+
+Store administrators can maintain the catalogue and customer-facing
+content through the `/admin` workspace. Storefront messaging, quick
+actions, brand styling, and assistant prompts are configurable through
+the CMS, allowing the experience to evolve without requiring frontend or
+backend code changes.
+
+The application combines a React frontend with a Flask API, a structured
+product database, hybrid product retrieval, and an optional
+browser-automation checkout flow.
+
+## Key capabilities
+
+### Conversational shopping
+
+-   Natural-language product discovery for ethnic-fashion categories.
+-   Product information and pricing displayed in Indian rupees (INR).
+-   Support for English, Hindi, and Hinglish customer conversations.
+-   Product cards, suggested actions, cart panel, and chat history.
+-   Photo-based product discovery where image input is available.
+-   Browser voice input on supported browsers.
+-   Assistant activity states for listening, thinking, responding, and
+    offline conditions.
+
+### Store administration
+
+-   Dedicated admin workspace at `/admin`.
+-   Product and policy management.
+-   Dashboard overview and chat transcript views.
+-   Storefront content and brand configuration.
+-   Editable assistant prompts and quick-action cards.
+-   Search dialog accessible with `Ctrl+K`.
+-   Light and dark themes.
+
+### Product discovery
+
+-   Natural-language query interpretation.
+-   Structured filtering by budget, colour, size, category, brand, and
+    gender.
+-   SQL filtering combined with vector similarity and lexical relevance.
+-   Saved shopper preferences incorporated into retrieval.
+-   Controlled relaxation of filters when no exact match is found.
+
+### Shopping workflow
+
+-   Cart operations with stock checks.
+-   Shipping and coupon calculations based on store policies.
+-   Checkout preparation through Playwright browser automation.
+-   A confirmation step before the checkout flow proceeds to payment.
+-   A built-in demo storefront available at `/store-sim`.
+
+## Customer experience
+
+The chat interface is designed to keep product discovery simple and
+focused.
+
+-   A graphite top bar provides access to new conversations, history,
+    assistant settings, the cart, and apps.
+-   The Zaldi orb provides a visual indication of the assistant's
+    current activity.
+-   Suggested prompts help customers get started.
+-   Product cards make relevant catalogue results easier to browse.
+-   The cart panel provides access to selected items.
+-   The composer supports text, photo search, and browser-based voice
+    input where supported.
+-   A response status panel can show the assistant's current plan while
+    a reply is being prepared.
+
+The interface uses English for its controls and navigation, while
+assistant responses can follow the customer's language.
+
+## Admin CMS
+
+The CMS is available at `/admin` and is intended for store staff
+managing the storefront.
+
+### Catalogue and policy management
+
+Administrators can create, review, update, and remove products and store
+policies. Product management includes table and grid views, category
+filters, sorting, and a slide-over editor.
+
+### Storefront content
+
+Under **Admin → Content**, administrators can manage customer-facing
+content, including:
+
+-   Welcome greeting and main heading.
+-   Supporting storefront text.
+-   Brand name and tagline.
+-   Brand colour palette.
+-   Quick-action cards shown on the empty chat screen.
+-   Assistant prompts.
+
+Text in the main heading can be wrapped in asterisks to apply the
+configured highlight treatment.
+
+### Defaults and reset behaviour
+
+The application starts with built-in default values. Clearing an
+editable value or choosing **Reset to default** restores its built-in
+value. Prompt changes are applied to the next customer message.
+
+## AI and product discovery
+
+Zaldi uses a staged request pipeline so that customer intent is
+interpreted and handled before the final response is generated.
+
+### Request processing
+
+1.  **Guardrails:** validate and screen the incoming message.
+2.  **Optional image analysis:** process an attached product image when
+    image input is provided.
+3.  **Intent routing:** classify the request into a supported route,
+    such as product search, cart, checkout, or general conversation.
+4.  **Entity extraction:** identify relevant product attributes and
+    constraints.
+5.  **Product retrieval:** apply structured database filters and hybrid
+    ranking.
+6.  **Action handling:** invoke the relevant cart or checkout service
+    when required.
+7.  **Response generation:** prepare the customer-facing explanation.
+
+The LLM is primarily responsible for interpreting language and wording
+the final response. Core shopping operations are handled by application
+services so they can be validated and tested independently.
+
+### Hybrid search
+
+Product discovery combines structured filtering with relevance ranking:
+
+-   Natural-language requests are converted into structured attributes.
+-   SQL filters enforce applicable constraints such as budget, size,
+    colour, category, brand, and gender.
+-   FAISS vector similarity helps retrieve semantically relevant
+    products.
+-   Lexical matching contributes exact-term relevance.
+-   Reciprocal Rank Fusion (RRF) combines ranking signals.
+
+Saved shopper preferences can be added to the search context. If the
+initial search produces no suitable results, selected soft filters may
+be relaxed, and the assistant communicates that adjustment to the
+customer.
+
+### Embeddings and model providers
+
+Gemini is the default model provider for the configured AI workflow. An
+offline hashing-based embedding option is available when
+`EMBEDDING_PROVIDER=local` is configured or when `GOOGLE_API_KEY` is
+unavailable. The local option supports basic word-level matching and is
+intended as a fallback rather than a replacement for semantic
+embeddings.
+
+The chat model provider can be configured independently using the
+environment variables described below.
+
+## Cart and checkout workflow
+
+The shopping flow separates cart preparation from checkout confirmation.
+
+1.  Products are added to the cart and checked against available stock.
+2.  Shipping and coupon pricing are calculated using configured store
+    policies.
+3.  The checkout service prepares the required steps using Playwright.
+4.  The browser automation fills the checkout form in the configured
+    storefront.
+5.  The flow pauses and requests customer confirmation before payment.
+
+The default automation target is the built-in demo storefront at
+`/store-sim`. A different storefront can be configured with
+`STOREFRONT_URL`.
+
+Customer addresses are entered through a form rather than sent as chat
+content to the LLM. Zaldi does not collect or process card or UPI
+payment credentials as part of this workflow. Confirmation uses a
+signed, expiring, single-use token.
+
+## Security and privacy
+
+Security checks are applied at multiple points in the request lifecycle.
+
+-   Personally identifiable information (PII), including phone numbers,
+    email addresses, Aadhaar, PAN, card, and UPI details, is redacted
+    before LLM requests and from application logs.
+-   Prompt-injection attempts are rejected before model execution.
+-   Generated responses are checked for PII and system-prompt
+    disclosure.
+-   Checkout automation pauses for explicit customer confirmation before
+    payment.
+-   Admin write operations are protected by the configured
+    `ADMIN_TOKEN`.
+
+For production use, deploy behind HTTPS and configure a long, randomly
+generated admin token. The current admin authentication model uses one
+shared token; see [Current limitations](#current-limitations).
+
+## Technology stack
+
+  -----------------------------------------------------------------------
+  Area                                Technologies
+  ----------------------------------- -----------------------------------
+  Frontend                            React, Vite, JavaScript, CSS
+
+  Backend                             Python, Flask, Gunicorn
+
+  AI orchestration                    LangChain components, configurable
+                                      LLM provider, Gemini embeddings
+
+  Product retrieval                   SQL, FAISS, lexical matching,
+                                      Reciprocal Rank Fusion
+
+  Database                            SQLite
+
+  Browser automation                  Playwright, headless Chromium
+
+  Motion and visual effects           Lenis, CSS animations, WebGL shader
+                                      with CSS fallback
+
+  Testing                             pytest, frontend production build
+
+  Deployment                          Docker, Docker Compose
+  -----------------------------------------------------------------------
+
+## System architecture
+
+The application is divided into a React client, a Flask API, and backend
+services for AI routing, search, cart operations, checkout automation,
+and persistence.
+
+``` text
+                         Customer
+                            |
+                            v
+                    React + Vite UI
+                            |
+                         /api
+                            |
+                            v
+                       Flask API
+                            |
+             +--------------+--------------+
+             |              |              |
+             v              v              v
+        Chat service    Cart service   Checkout service
+             |                             |
+             v                             v
+        AI guardrails                 Handshake / token
+             |                             |
+       +-----+------+                      v
+       |            |                Playwright
+       v            v                      |
+   Image vision  Intent router             v
+                    |                  Storefront
+          +---------+---------+          /store-sim
+          |         |         |
+          v         v         v
+       Product    Cart     General
+       search    actions  conversation
+          |
+          v
+    SQL filters + FAISS
+          |
+          v
+     Product database
+```
+
+The Flask application exposes the API and serves the built frontend in
+production. The backend package separates HTTP endpoints, business
+services, AI components, and database repositories.
 
 ## Design system
 
-- **Palette** (editable in admin -> Content -> Storefront): Black `#090B0A`, Electric Lime `#C1F75A`, Graphite `#202622`, Leaf Green `#79B83D`, Silver `#D8DED8`. `frontend/src/styles/tokens.css` derives every surface, border, text and focus colour from these with `color-mix`, in a dark theme (default) and a light theme. Status colours (success, warning, error, info) are fixed per theme.
-- **Type and icons**: Inter; one hand-tuned SVG icon family in `shared/components/Icon.jsx` (no icon library).
-- **Motion**: smooth scrolling with [Lenis](https://lenis.dev/); the orb and smoke respect `prefers-reduced-motion`. The orb's smoke is a small WebGL shader with a CSS fallback.
-- **Speed**: one cached bundle (about 70 KB gzipped). Flask serves `/assets/*` with a one-year immutable cache and `index.html` with `no-cache`.
+Zaldi uses an **Obsidian Black × Electric Lime** visual direction, with
+a dark theme by default and a corresponding light theme.
 
-## Architecture
+  Design role          Colour          Hex
+  -------------------- --------------- -----------
+  Primary background   Black           `#090B0A`
+  Accent               Electric Lime   `#C1F75A`
+  Secondary surface    Graphite        `#202622`
+  Supporting accent    Leaf Green      `#79B83D`
+  Neutral              Silver          `#D8DED8`
 
-```
-React (Vite) ──/api──▶ Flask
- POST /api/chat ─▶ chat_service: ai.guardrails ─▶ ai.vision? ─▶ ai.router ─┬ search.extract + services.preferences ─▶ search.hybrid (SQL + FAISS) ─▶ LLM wording
- /api/cart, /api/preferences                                                ├ services.cart_chat ─▶ services.cart
- /api/checkout/{prepare,confirm,cancel} ─▶ checkout.handshake ─▶ checkout.automation (Playwright) ─▶ /store-sim
-                                                                            └ ai.chitchat
-```
+The five base colours can be changed in **Admin → Content →
+Storefront**. Other interface colours are derived from these design
+tokens, including surfaces, borders, text, and focus treatments. Status
+colours remain theme-specific.
 
-Run `python -m zaldi ingest` to rebuild the product vector index (it also rebuilds itself when products change).
+Additional design details:
 
-## Deploy
+-   **Typography:** Inter.
+-   **Icons:** a shared, custom SVG icon family.
+-   **Motion:** Lenis-powered smooth scrolling and CSS animations.
+-   **Reduced motion:** the orb and smoke effects respect
+    `prefers-reduced-motion`.
+-   **Visual effects:** the orb smoke uses a lightweight WebGL shader
+    with a CSS fallback.
 
-`docker compose up --build` (needs a `.env`, see `.env.example`). The image bundles the built frontend, gunicorn and headless Chromium; data lives in a named volume. Note: the image build has not been tested in this repo's CI yet.
+Design tokens are maintained in `frontend/src/styles/tokens.css`.
 
 ## Project structure
 
-```
+``` text
 Zaldi/
-├── wsgi.py                     Entry point (python wsgi.py / gunicorn wsgi:app)
-├── pyproject.toml              Project metadata + pytest and ruff config
+├── wsgi.py
+├── pyproject.toml
 ├── requirements.txt
-├── zaldi/                      Backend package
-│   ├── __init__.py             create_app() factory
-│   ├── __main__.py, cli.py     Terminal chat: python -m zaldi
-│   ├── config.py               Env vars and paths (read as config.NAME so tests can patch them)
-│   ├── errors.py               Domain errors (ValidationError)
-│   ├── api/                    HTTP layer
-│   │   ├── auth.py             admin_required (X-Admin-Token)
-│   │   ├── chat.py             POST /api/chat
-│   │   ├── admin.py            /api/admin/login, stats, settings, prompts
-│   │   ├── site.py             GET /api/site-config (public storefront text + quick actions)
-│   │   ├── content.py          make_content_blueprint(): CRUD for products and policies
-│   │   ├── errors.py           error handlers (400 / JSON 404)
-│   │   └── frontend.py         serves frontend/dist with SPA fallback
+├── zaldi/
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── cli.py
+│   ├── config.py
+│   ├── errors.py
+│   ├── api/
+│   │   ├── auth.py
+│   │   ├── chat.py
+│   │   ├── admin.py
+│   │   ├── site.py
+│   │   ├── content.py
+│   │   ├── errors.py
+│   │   └── frontend.py
 │   ├── services/
-│   │   ├── chat_service.py     handle_query(): route, answer, log
-│   │   ├── site_config.py      setting defaults, validation, storefront config
-│   │   └── prompt_service.py   list / update / reset the editable prompts
+│   │   ├── chat_service.py
+│   │   ├── site_config.py
+│   │   └── prompt_service.py
 │   ├── ai/
-│   │   ├── models.py           get_llm(), get_embeddings()
-│   │   ├── prompts.py          all prompt text
-│   │   ├── router.py           Route enum + SemanticRouter
-│   │   ├── route_samples.py    example utterances per route
-│   │   ├── agent.py, chitchat.py
-│   │   └── tools/              product_search.py (SQL), policy_search.py (FAISS)
+│   │   ├── models.py
+│   │   ├── prompts.py
+│   │   ├── router.py
+│   │   ├── route_samples.py
+│   │   ├── agent.py
+│   │   ├── chitchat.py
+│   │   └── tools/
 │   └── db/
-│       ├── connection.py       connect(), init_db()
-│       ├── schema.sql, seed.py
-│       ├── content_repo.py     products / policies / quick_actions CRUD + validation
-│       ├── override_repo.py    settings and prompt overrides (missing row = default)
-│       └── chat_log_repo.py    chat logs + dashboard stats
-├── frontend/                   React + Vite
+│       ├── connection.py
+│       ├── schema.sql
+│       ├── seed.py
+│       ├── content_repo.py
+│       ├── override_repo.py
+│       └── chat_log_repo.py
+├── frontend/
 │   └── src/
-│       ├── api/client.js       all HTTP calls
-│       ├── features/chat/      ChatPage, ChatPanel, useChats (history in localStorage)
-│       ├── features/admin/     AdminPage (gate), LoginForm, AdminWorkspace, Dashboard,
-│       │                       ProductsView, PoliciesView, ChatsView, SearchDialog, StockBadge,
-│       │                       content/ (StorefrontSettings, QuickActionsEditor, PromptsEditor)
-│       ├── shared/             components (AppShell, Drawer, Icon), context (Auth, Toast), utils
-│       └── styles/             tokens, base, layout, controls, chat, admin, overlays, animations
+│       ├── api/
+│       ├── features/
+│       │   ├── chat/
+│       │   └── admin/
+│       ├── shared/
+│       └── styles/
 ├── data/
-│   ├── seed/                   products.csv, policy.txt, raw_data.txt, synthetic_conversations.json
-│   └── zaldi.db, policy_index/, router_cache/   generated (gitignored)
-├── scripts/generate_synthetic_data.py   optional synthetic chat data via Groq
-├── tests/                      api/ (offline), ai/ (offline), live/ (real API calls)
-└── .github/workflows/ci.yml    backend tests + frontend build
+│   └── seed/
+├── scripts/
+├── tests/
+└── docs/
 ```
+
+### Backend responsibilities
+
+  -----------------------------------------------------------------------
+  Module                              Responsibility
+  ----------------------------------- -----------------------------------
+  `zaldi/api/`                        HTTP routes, request handling,
+                                      authentication, and frontend
+                                      serving
+
+  `zaldi/services/`                   Chat orchestration, storefront
+                                      configuration, and prompt
+                                      management
+
+  `zaldi/ai/`                         Model setup, prompts, intent
+                                      routing, agents, and AI tools
+
+  `zaldi/db/`                         Database connection, schema, seed
+                                      data, and repository operations
+
+  `frontend/src/features/chat/`       Customer chat experience and chat
+                                      state
+
+  `frontend/src/features/admin/`      Admin dashboard, catalogue,
+                                      policies, and CMS editors
+
+  `frontend/src/shared/`              Shared UI components, context, and
+                                      utilities
+
+  `frontend/src/styles/`              Design tokens and interface styles
+
+  `tests/`                            API, AI, and live integration tests
+  -----------------------------------------------------------------------
 
 ### Naming conventions
 
-- Python: `snake_case` modules, functions and variables; `PascalCase` classes; `UPPER_CASE` constants. Repositories are `*_repo.py`, HTTP modules live in `api/`, orchestration in `services/*_service.py`.
-- JavaScript: components and pages are `PascalCase.jsx`; hooks are `useThing.js`; utilities and the API client are lowercase `.js`; feature code lives under `features/<name>/`, cross-feature code under `shared/`.
-- CSS: one file per concern under `styles/`, design tokens as CSS variables in `tokens.css`.
-- Tests mirror the package: `tests/api`, `tests/ai`, `tests/live`; live tests carry the `live` marker.
+-   **Python:** `snake_case` for modules, functions, and variables;
+    `PascalCase` for classes; `UPPER_CASE` for constants.
+-   **React:** `PascalCase.jsx` for components and pages; `useThing.js`
+    for hooks.
+-   **Frontend utilities:** lowercase `.js` files.
+-   **Styles:** separate CSS files by concern, with shared variables in
+    `tokens.css`.
+-   **Tests:** organised to mirror the backend package. Tests requiring
+    real provider calls use the `live` marker.
 
-## Database schema (`data/zaldi.db`, created on first run)
+## Getting started
 
-| Table | Columns |
-|-------|---------|
-| `products` | `id`, `product_code` (unique), `product_name`, `category`, `material`, `size`, `color`, `brand`, `gender`, `stock_quantity` (>= 0), `price` (INR, GST inclusive, >= 0), `description`, `image_url`, `updated_at` |
-| `policies` | `id`, `title` (unique), `content`, `updated_at` |
-| `chat_logs` | `id`, `query`, `response`, `route`, `created_at` |
-| `quick_actions` | `id`, `title`, `subtitle`, `message`, `icon`, `position`, `active`, `updated_at` |
-| `settings` | `key`, `value`, `updated_at` (overrides only) |
-| `prompts` | `name`, `content`, `updated_at` (overrides only) |
+### Prerequisites
 
-On first run `products`, `policies` and `quick_actions` are seeded from `data/seed/` (`products.csv`, the `## ` sections of `policy.txt`, `quick_actions.csv`). Older databases are migrated automatically (for example `products.image_url`). After that the **database is the source of truth**; to re-seed, delete `data/zaldi.db`.
+-   Python 3.10 or later.
+-   Node.js 18 or later.
+-   npm.
+-   A Google AI API key for the default Gemini-backed workflow. Local
+    embedding fallback is available for offline development.
 
-## Setup
+### 1. Clone the repository
 
-Prerequisites: Python 3.10+, Node 18+, a Google AI API key ([get one](https://ai.google.dev/)).
+``` bash
+git clone <repository-url>
+cd Zaldi
+```
 
-```bash
+Replace `<repository-url>` with the repository's clone URL.
+
+### 2. Create and activate a Python virtual environment
+
+``` bash
 python -m venv venv
-venv\Scripts\activate            # macOS/Linux: source venv/bin/activate
+```
+
+**Windows (PowerShell):**
+
+``` powershell
+.\venv\Scripts\Activate.ps1
+```
+
+**macOS / Linux:**
+
+``` bash
+source venv/bin/activate
+```
+
+### 3. Install backend dependencies
+
+``` bash
 pip install -r requirements.txt
-
-cp .env.example .env             # then fill in the keys (see below)
-
-cd frontend && npm install && npm run build && cd ..
-python wsgi.py                   # http://127.0.0.1:5000  (admin at /admin)
 ```
 
-### Environment variables (`.env`)
+### 4. Configure environment variables
 
-| Variable | Purpose |
-|----------|---------|
-| `GOOGLE_API_KEY` | Gemini chat model + embeddings (embeddings are always Google) |
-| `GROQ_API_KEY` | Only if `LLM_PROVIDER=groq` (e.g. `LLM_MODEL=openai/gpt-oss-120b`) |
-| `ADMIN_TOKEN` | Password for the admin panel / CMS writes. If unset, write endpoints return 503 |
-| `LLM_PROVIDER` / `LLM_MODEL` | Default `google` / `gemini-3.5-flash` |
-| `EMBEDDING_MODEL` | Default `models/gemini-embedding-001` |
+Create a local environment file:
 
-## Development
-
-```bash
-python wsgi.py                  # API on :5000 (debug, auto-reload). Run it inside the venv, or imports like langchain_classic will be missing
-cd frontend && npm run dev      # UI on :5173, proxies /api to :5000
-python -m zaldi                 # terminal chat
+``` bash
+cp .env.example .env
 ```
 
-## API
+On Windows, copy `.env.example` to `.env` using your preferred terminal
+or editor. Add the required configuration values before starting the
+application.
 
-| Method & path | Auth | Description |
-|---------------|------|-------------|
-| `POST /api/chat` `{message}` | public | Returns `{response, type}`; logged to `chat_logs` |
-| `GET /api/site-config` | public | Storefront text + active quick actions |
-| `GET /api/products?q=&category=` | public | List/search products |
-| `GET /api/products/<id>`, `GET /api/policies[/<id>]` | public | Read |
-| `POST/PUT/DELETE /api/products[/<id>]`, same for `/api/policies` | `X-Admin-Token` | Manage content |
-| `POST/PUT/DELETE /api/quick_actions[/<id>]` | `X-Admin-Token` | Manage quick-action cards |
-| `POST /api/admin/login`, `GET /api/admin/stats` | `X-Admin-Token` | Verify token / dashboard data |
-| `GET/PUT /api/admin/settings` | `X-Admin-Token` | Read / change storefront text (empty value resets) |
-| `GET /api/admin/prompts`, `PUT/DELETE /api/admin/prompts/<name>` | `X-Admin-Token` | Read / change / reset assistant prompts |
+### 5. Install and build the frontend
+
+``` bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+### 6. Start the application
+
+``` bash
+python wsgi.py
+```
+
+Open the application at:
+
+-   **Storefront:** http://127.0.0.1:5000
+-   **Admin CMS:** http://127.0.0.1:5000/admin
+
+## Configuration
+
+Zaldi reads its runtime configuration from environment variables. Keep
+secrets in `.env` for local development and do not commit that file.
+
+  -----------------------------------------------------------------------
+  Variable                            Purpose
+  ----------------------------------- -----------------------------------
+  `GOOGLE_API_KEY`                    Enables the Gemini-backed model and
+                                      embedding workflow.
+
+  `GROQ_API_KEY`                      Required when `LLM_PROVIDER=groq`.
+
+  `ADMIN_TOKEN`                       Shared token used to protect admin
+                                      operations. Write endpoints return
+                                      `503` when it is not configured.
+
+  `LLM_PROVIDER`                      Selects the chat model provider.
+                                      Defaults to `google`.
+
+  `LLM_MODEL`                         Selects the chat model. The
+                                      documented default is
+                                      `gemini-3.5-flash`.
+
+  `EMBEDDING_PROVIDER`                Selects the embedding
+                                      implementation; `local` enables the
+                                      offline hashing embedder.
+
+  `EMBEDDING_MODEL`                   Embedding model identifier. The
+                                      documented default is
+                                      `models/gemini-embedding-001`.
+
+  `STOREFRONT_URL`                    Optional URL for the storefront
+                                      used by checkout automation.
+                                      Defaults to the built-in demo
+                                      storefront.
+  -----------------------------------------------------------------------
+
+Example configuration:
+
+``` dotenv
+GOOGLE_API_KEY=your_google_api_key
+ADMIN_TOKEN=replace_with_a_long_random_secret
+
+LLM_PROVIDER=google
+LLM_MODEL=gemini-3.5-flash
+EMBEDDING_MODEL=models/gemini-embedding-001
+```
+
+If using Groq for chat, configure `GROQ_API_KEY` and set
+`LLM_PROVIDER=groq`. For example, the project documentation references
+`openai/gpt-oss-120b` as a possible `LLM_MODEL` value.
+
+Do not put real credentials in source control, screenshots, issue
+reports, or chat transcripts.
+
+## Running in development
+
+For frontend and backend hot-reload workflows, run the API and Vite
+development server in separate terminals.
+
+**Terminal 1 --- Flask API:**
+
+``` bash
+# Activate the virtual environment first
+python wsgi.py
+```
+
+The API runs on port `5000`.
+
+**Terminal 2 --- Vite frontend:**
+
+``` bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend development server runs on port `5173` and proxies `/api`
+requests to the Flask server on port `5000`.
+
+### Terminal chat
+
+A command-line chat interface is also available:
+
+``` bash
+python -m zaldi
+```
+
+Run Python commands from the activated virtual environment so the
+installed project dependencies are available.
+
+### Rebuild the product index
+
+After product data changes, rebuild the vector index with:
+
+``` bash
+python -m zaldi ingest
+```
+
+The index is also rebuilt automatically when the application detects
+product changes.
+
+## Database
+
+The application uses SQLite. The database is created on first run at
+`data/zaldi.db`.
+
+  -----------------------------------------------------------------------
+  Table                               Purpose
+  ----------------------------------- -----------------------------------
+  `products`                          Product catalogue, attributes,
+                                      stock, INR price, and image URL
+
+  `policies`                          Store policies and their content
+
+  `chat_logs`                         Customer queries, assistant
+                                      responses, route, and timestamp
+
+  `quick_actions`                     Configurable suggestion cards for
+                                      the chat interface
+
+  `settings`                          Storefront setting overrides
+
+  `prompts`                           Assistant prompt overrides
+  -----------------------------------------------------------------------
+
+### Product data
+
+The `products` table includes fields such as product code, name,
+category, material, size, colour, brand, gender, stock quantity, price,
+description, image URL, and update timestamp. Product codes are unique;
+stock and price values are constrained to non-negative values. Prices
+are stored in INR and are documented as GST-inclusive.
+
+### Initial seed data
+
+On first run, the application seeds the database from files in
+`data/seed/`, including the product catalogue and policy content. After
+initial setup, the database is the source of truth for managed content.
+
+To recreate the initial seeded database, stop the application and remove
+`data/zaldi.db`. The next application start will initialise and seed the
+database again. **This deletes locally stored catalogue, policy, and
+application data**, so back up the database first if it contains changes
+you need to retain.
+
+## API reference
+
+The following routes are exposed by the Flask application.
+
+  -----------------------------------------------------------------------------------
+  Method            Endpoint                      Access            Description
+  ----------------- ----------------------------- ----------------- -----------------
+  `POST`            `/api/chat`                   Public            Submit a customer
+                                                                    message and
+                                                                    receive an
+                                                                    assistant
+                                                                    response.
+
+  `GET`             `/api/site-config`            Public            Retrieve
+                                                                    storefront text
+                                                                    and active quick
+                                                                    actions.
+
+  `GET`             `/api/products`               Public            List or search
+                                                                    products;
+                                                                    supports `q` and
+                                                                    `category` query
+                                                                    parameters.
+
+  `GET`             `/api/products/<id>`          Public            Retrieve a
+                                                                    product.
+
+  `GET`             `/api/policies`               Public            List store
+                                                                    policies.
+
+  `GET`             `/api/policies/<id>`          Public            Retrieve a
+                                                                    policy.
+
+  `POST`, `PUT`,    `/api/products` and           Admin             Create, update,
+  `DELETE`          `/api/products/<id>`                            or delete
+                                                                    products.
+
+  `POST`, `PUT`,    `/api/policies` and           Admin             Create, update,
+  `DELETE`          `/api/policies/<id>`                            or delete
+                                                                    policies.
+
+  `POST`, `PUT`,    `/api/quick_actions` and      Admin             Manage
+  `DELETE`          `/api/quick_actions/<id>`                       quick-action
+                                                                    cards.
+
+  `POST`            `/api/admin/login`            Admin             Verify the admin
+                                                                    token.
+
+  `GET`             `/api/admin/stats`            Admin             Retrieve
+                                                                    dashboard
+                                                                    statistics.
+
+  `GET`, `PUT`      `/api/admin/settings`         Admin             Read or update
+                                                                    storefront
+                                                                    settings.
+
+  `GET`             `/api/admin/prompts`          Admin             List assistant
+                                                                    prompts.
+
+  `PUT`, `DELETE`   `/api/admin/prompts/<name>`   Admin             Update or reset
+                                                                    an assistant
+                                                                    prompt.
+  -----------------------------------------------------------------------------------
+
+Admin endpoints use the `X-Admin-Token` request header. The exact
+request and response schemas should be checked in the corresponding
+route implementation.
 
 ## Testing
 
-```bash
-python -m pytest -m "not live"     # offline: API, CMS, SQL guard, SPA serving
-python -m pytest -m live           # real Google/Groq calls (needs keys and quota)
+Run the offline test suite:
+
+``` bash
+python -m pytest -m "not live"
 ```
 
-Live tests skip themselves without `GOOGLE_API_KEY`. `tests/api/test_rate_limit.py::test_chat_is_limited_per_visitor` calls the real model, so it fails when the quota is exhausted. The Gemini free tier is limited (about 20 generations per day, 100 embeddings per minute), so run them sparingly. CI (`.github/workflows/ci.yml`) runs the offline tests and builds the frontend; there is no deploy step yet.
+Run tests that make real AI provider calls:
+
+``` bash
+python -m pytest -m live
+```
+
+The offline suite covers application functionality such as API
+behaviour, CMS operations, SQL safeguards, and frontend serving. Live
+tests require valid provider credentials and available API quota.
+
+Live tests may be skipped when the required Google API key is
+unavailable. Provider rate limits can also affect tests that make real
+model requests. Run live tests selectively to avoid unnecessary quota
+consumption.
+
+The CI workflow in `.github/workflows/ci.yml` runs offline tests and
+builds the frontend. The repository does not currently define a
+deployment step in CI.
+
+## Deployment
+
+The project includes a Docker Compose setup.
+
+``` bash
+docker compose up --build
+```
+
+Before starting:
+
+1.  Create and configure `.env` using `.env.example` as a reference.
+2.  Set a strong `ADMIN_TOKEN`.
+3.  Configure the required model-provider credentials.
+4.  Review the storefront URL and checkout settings for the target
+    environment.
+
+The Docker image is configured to bundle the built frontend, Gunicorn,
+and headless Chromium. Application data is stored in a named Docker
+volume.
+
+**Deployment note:** the Docker image build has not been verified by the
+repository's CI workflow. Validate the image and checkout automation in
+a staging environment before relying on this deployment path in
+production.
 
 ## Troubleshooting
 
-- **`Request failed (500)` / "Backend is not running"** in the dev UI: the Vite server on :5173 cannot reach Flask on :5000. Start `python wsgi.py` (from the activated venv).
-- **`No module named 'langchain_classic'`** in a chat error: Flask is running under a Python without the project packages. Activate the venv (`venv\Scripts\activate`) or run `pip install -r requirements.txt` in the interpreter you use.
-- **"Zaldi is very busy right now. Please try again in a few minutes."**: the model provider rejected the request (for example Gemini `429 RESOURCE_EXHAUSTED`, free tier about 20 generations a day). The customer sees only this message; the detail is in the server log. Wait for the quota to reset, or set `LLM_PROVIDER=groq` and `LLM_MODEL=openai/gpt-oss-120b`. Product and policy questions still get a plain-text answer without the model; model calls use one retry and a 15 second timeout so fallbacks arrive quickly.
-- **Dev UI shows old styles or components**: if the project lives in OneDrive, Vite can miss file changes. Restart `npm run dev`.
+  -----------------------------------------------------------------------------------------------------
+  Problem                                  Likely cause            Suggested action
+  ---------------------------------------- ----------------------- ------------------------------------
+  The UI reports that the backend is       The Vite frontend       Start the Flask server with
+  unavailable or a request returns `500`.  cannot reach Flask.     `python wsgi.py` and confirm it is
+                                                                   listening on port `5000`.
 
-## Known limitations
+  `No module named 'langchain_classic'`.   Flask is running with a Activate the project virtual
+                                           Python interpreter that environment and run
+                                           does not have the       `pip install -r requirements.txt`.
+                                           project dependencies    
+                                           installed.              
 
-- The API is stateless: chat history lives in the browser and the bot does not remember earlier messages.
-- Admin auth is a single shared token; use HTTPS and a long random `ADMIN_TOKEN` in production.
-- Embeddings use Google even when `LLM_PROVIDER=groq`.
+  The assistant reports that it is busy.   The model provider may  Check the server logs, wait for
+                                           have rejected the       quota recovery, or configure another
+                                           request because of rate supported chat provider.
+                                           limits, quota, or       
+                                           temporary availability. 
+
+  The development UI shows outdated styles The development server  Stop and restart `npm run dev`.
+  or components.                           may not have detected   
+                                           file changes,           
+                                           particularly when the   
+                                           repository is stored in 
+                                           a synchronised folder.  
+
+  Product results are not up to date after The product vector      Run `python -m zaldi ingest`.
+  catalogue changes.                       index may need          
+                                           rebuilding.             
+  -----------------------------------------------------------------------------------------------------
+
+The application includes fallback behaviour for some provider failures.
+Product and policy requests may still return plain-text responses when
+model generation is unavailable.
+
+## Current limitations
+
+-   **Chat persistence:** the API is stateless. Chat history is stored
+    in the browser, and the assistant does not retain conversational
+    context across independent requests.
+-   **Admin authentication:** the current implementation uses one shared
+    admin token rather than individual administrator accounts and
+    role-based access.
+-   **Embedding provider:** the configured embedding implementation is
+    independent of the chat provider. Switching chat to Groq does not
+    automatically switch embeddings away from Google.
+-   **Live AI tests:** tests that call external model providers depend
+    on credentials, quota, and provider availability.
+-   **Deployment verification:** the Docker image build is not currently
+    covered by a verified CI deployment pipeline.
+
+## Contributing
+
+Contributions and improvements are welcome.
+
+1.  Create a branch for your change.
+2.  Keep backend modules, frontend features, and shared components
+    within their existing areas.
+3.  Add or update tests for behaviour changes.
+4.  Run the offline test suite and build the frontend before submitting
+    a pull request.
+5.  Document any new environment variables or setup requirements.
+
+Please avoid committing `.env` files, API keys, generated databases,
+local indexes, or other runtime secrets and data.
 
 ## License
 
-MIT. Made by [shreyanshtri26](https://github.com/shreyanshtri26).
+This project is licensed under the [MIT
+License](https://opensource.org/licenses/MIT).
+
+------------------------------------------------------------------------
+
+Built by [shreyanshtri26](https://github.com/shreyanshtri26).
