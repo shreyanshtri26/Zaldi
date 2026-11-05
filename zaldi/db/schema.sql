@@ -89,3 +89,43 @@ CREATE TABLE IF NOT EXISTS orders (
     created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     confirmed_at TEXT
 );
+
+-- Agent Studio. Per-agent settings (instructions, capabilities, tools, permissions, approvals) live in `config` JSON.
+CREATE TABLE IF NOT EXISTS agents (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    icon        TEXT NOT NULL DEFAULT 'bot',
+    model       TEXT NOT NULL DEFAULT 'gemini',
+    status      TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('active', 'paused', 'draft')),
+    config      TEXT NOT NULL DEFAULT '{}',
+    created_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- One row per execution; `steps` is a JSON list of user-facing progress entries (no hidden reasoning).
+CREATE TABLE IF NOT EXISTS agent_runs (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id    INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    trigger_    TEXT NOT NULL DEFAULT 'test',
+    input       TEXT NOT NULL,
+    status      TEXT NOT NULL CHECK (status IN ('success', 'failed', 'awaiting_approval')),
+    steps       TEXT NOT NULL DEFAULT '[]',
+    result      TEXT,
+    error       TEXT,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- A proposed policy change. Nothing is written to `policies` until a merchant approves it.
+CREATE TABLE IF NOT EXISTS approvals (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id         INTEGER REFERENCES agents(id) ON DELETE SET NULL,
+    policy_id        INTEGER NOT NULL REFERENCES policies(id) ON DELETE CASCADE,
+    reason           TEXT NOT NULL DEFAULT '',
+    current_content  TEXT NOT NULL,
+    proposed_content TEXT NOT NULL,
+    status           TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    decided_at       TEXT
+);

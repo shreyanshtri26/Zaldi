@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request
 
 from zaldi.api.auth import admin_required
+from zaldi.api.ratelimit import rate_limited
 from zaldi.db import chat_log_repo
 from zaldi.services import prompt_service, site_config
 
@@ -10,6 +11,7 @@ RECENT_CHATS = 20
 
 
 @bp.post("/login")
+@rate_limited("RATE_LIMIT_LOGIN")
 @admin_required
 def login():
     return jsonify(ok=True)

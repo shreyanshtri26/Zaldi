@@ -30,7 +30,7 @@ function Reply({ message, onAdd, addingId, onOpenCart }) {
   );
 }
 
-function Composer({ busy, onSend, placeholder, boxRef }) {
+function Composer({ busy, onSend, placeholder, boxRef, photo = true }) {
   const [input, setInput] = useState("");
   const [image, setImage] = useState(null);
   const file = useRef(null);
@@ -49,7 +49,7 @@ function Composer({ busy, onSend, placeholder, boxRef }) {
   return (
     <form className="composer" onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { setImage(e.target.files[0] || null); e.target.value = ""; }} />
-      <button type="button" className="icon-btn" aria-label="Attach a photo" title="Search by photo" onClick={() => file.current.click()}><Icon name="image" size={18} /></button>
+      {photo && <button type="button" className="icon-btn" aria-label="Attach a photo" title="Search by photo" onClick={() => file.current.click()}><Icon name="image" size={18} /></button>}
       <div className="composer-main">
         {image && <span className="attach"><Icon name="image" size={13} />{image.name}<button type="button" aria-label="Remove photo" onClick={() => setImage(null)}>×</button></span>}
         <label className="sr" htmlFor="msg">Message</label>
@@ -75,10 +75,27 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onO
     else end.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy, lenis]);
 
-  const composer = <Composer busy={busy} onSend={onSend} placeholder={settings.input_placeholder} boxRef={box} />;
+  const composer = <Composer busy={busy} onSend={onSend} placeholder={settings.input_placeholder} boxRef={box} photo={settings.photo_button !== "hide"} />;
+
+  const pos = settings.bar_position;
+  const inline = empty && pos === "center";
+  const dock = (
+    <div className={`composer-wrap ${pos === "top" ? "top" : ""}`}>
+      {composer}
+      {pos !== "top" && <div className="hint">Enter to send · Shift+Enter for a new line</div>}
+    </div>
+  );
+  const chips = (
+    <div className={`chips ${settings.cards_align} ${settings.cards_position}`}>
+      {quickActions.map(({ id, icon, title, message }) => (
+        <button key={id} className="chip" onClick={() => onSend(message)}><Icon name={icon} size={15} />{title}</button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="chat-area">
+      {pos === "top" && dock}
       <div className="thread" ref={wrapper}>
         <div className="thread-in">
           {empty ? (
@@ -86,12 +103,9 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onO
               <span className="mark lg" role="img" aria-label="Zaldi" style={{ display: "inline-block" }} />
               <h2>{settings.welcome_heading}</h2>
               <p>{settings.welcome_subtitle}</p>
-              {composer}
-              <div className="chips">
-                {quickActions.map(({ id, icon, title, message }) => (
-                  <button key={id} className="chip" onClick={() => onSend(message)}><Icon name={icon} size={15} />{title}</button>
-                ))}
-              </div>
+              {settings.cards_position === "above" && chips}
+              {inline && composer}
+              {settings.cards_position !== "above" && chips}
             </div>
           ) : (
             <div className="col">
@@ -105,12 +119,7 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onO
           )}
         </div>
       </div>
-      {!empty && (
-        <div className="composer-wrap">
-          {composer}
-          <div className="hint">Enter to send · Shift+Enter for a new line</div>
-        </div>
-      )}
+      {!inline && pos !== "top" && dock}
     </div>
   );
 }

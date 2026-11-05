@@ -18,8 +18,8 @@ COPY zaldi/ ./zaldi/
 COPY data/seed/ ./data/seed/
 COPY wsgi.py ./
 COPY --from=frontend /app/frontend/dist ./frontend/dist
-RUN useradd -m app && mkdir -p data && chown -R app /app
-USER app
+# Runs as root so it can write to a mounted disk (Render mounts disks root-owned); Chromium already runs with --no-sandbox.
+RUN mkdir -p data
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/api/health')"
 # gthread: the checkout automation calls back into this same server, so it needs more than one request thread.

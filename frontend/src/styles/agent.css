@@ -1,10 +1,10 @@
 /* ---------- Assistant status: bot avatar, working card, execution timeline ----------
    Warm orange accents come from the agent-status reference; used only here, not across the app. */
-.bot-avatar { flex: none; display: inline-grid; place-items: center; border-radius: 10px; color: #fff; background: linear-gradient(145deg, #ff9959, #d94c22); box-shadow: 0 0 0 1px var(--border); }
+.bot-avatar { flex: none; display: inline-grid; place-items: center; border-radius: 10px; color: #fff; background: linear-gradient(145deg, var(--c-sky), var(--c-blue)); box-shadow: 0 0 0 1px var(--border); }
 .bot-avatar.active { box-shadow: 0 0 0 3px var(--agent-glow); animation: glow 1.6s ease-in-out infinite; }
 
 .orb { width: 12px; height: 12px; border-radius: 50%; background: var(--agent-orange); box-shadow: 0 0 12px 2px var(--agent-orange); animation: pulse 1.4s ease-in-out infinite; flex: none; }
-.agent-bar { height: 3px; width: 160px; margin-top: 8px; border-radius: 3px; background: rgba(233, 188, 141, .2); overflow: hidden; }
+.agent-bar { height: 3px; width: 160px; margin-top: 8px; border-radius: 3px; background: color-mix(in srgb, var(--c-sky) 20%, transparent); overflow: hidden; }
 .agent-bar i { display: block; height: 100%; width: 40%; border-radius: 3px; background: linear-gradient(90deg, var(--agent-red), var(--agent-orange)); animation: sweep 1.2s ease-in-out infinite; }
 
 

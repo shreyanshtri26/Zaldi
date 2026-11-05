@@ -1,6 +1,7 @@
 """POST /api/chat: JSON ``{"message"}`` or multipart (``message`` + optional ``image``)."""
 from flask import Blueprint, jsonify, request
 
+from zaldi.api.ratelimit import rate_limited
 from zaldi.api.shop import session_id
 from zaldi.errors import ValidationError
 
@@ -8,6 +9,7 @@ bp = Blueprint("chat", __name__)
 
 
 @bp.post("/chat")
+@rate_limited("RATE_LIMIT_CHAT")
 def post_chat():
     sid = session_id()
     image = None

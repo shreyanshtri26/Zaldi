@@ -1,0 +1,21 @@
+# Render Blueprint: the Flask API (and built frontend) as a Docker web service with a persistent disk.
+# Secrets marked sync:false are entered once in the Render dashboard; they are never stored in git.
+services:
+  - type: web
+    name: zaldi-api
+    runtime: docker
+    plan: starter            # persistent disks are not available on the free plan
+    healthCheckPath: /api/health
+    disk:
+      name: zaldi-data
+      mountPath: /var/data   # SQLite database and search indexes live here
+      sizeGB: 1
+    envVars:
+      - { key: DATA_DIR, value: /var/data }
+      - { key: PORT, value: "8000" }
+      - { key: STOREFRONT_URL, value: http://127.0.0.1:8000 }
+      - { key: ADMIN_TOKEN, sync: false }
+      - { key: GOOGLE_API_KEY, sync: false }
+      - { key: GROQ_API_KEY, sync: false }
+      - key: SECRET_KEY
+        generateValue: true

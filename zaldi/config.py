@@ -28,12 +28,14 @@ SECRET_KEY = os.getenv("SECRET_KEY") or ADMIN_TOKEN or "dev-only-secret"  # sign
 STOREFRONT_URL = os.getenv("STOREFRONT_URL", "")  # checkout site the browser automation drives; "" = this app's built-in simulator
 BROWSER_CHANNEL = os.getenv("BROWSER_CHANNEL", "")  # "msedge"/"chrome" to use an installed browser instead of Playwright's
 BROWSER_NO_SANDBOX = os.getenv("BROWSER_NO_SANDBOX") == "1"  # needed for Chromium as root inside Docker
+RATE_LIMIT_CHAT = int(os.getenv("RATE_LIMIT_CHAT", "20"))  # chat messages per minute per visitor; 0 = off
+RATE_LIMIT_LOGIN = int(os.getenv("RATE_LIMIT_LOGIN", "10"))  # admin login attempts per minute per visitor; 0 = off
 HANDSHAKE_TTL = 900  # seconds a checkout confirmation stays valid
 
 # --- Paths -------------------------------------------------------------------
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR = Path(os.getenv("DATA_DIR") or BASE_DIR / "data")  # point at a persistent disk in production
 DB_PATH = DATA_DIR / "zaldi.db"  # products, policies, chat logs (the CMS)
-SEED_DIR = DATA_DIR / "seed"  # one-time seed data; the database is the source of truth afterwards
+SEED_DIR = BASE_DIR / "data" / "seed"  # one-time seed data; the database is the source of truth afterwards
 SEED_PRODUCTS_CSV = SEED_DIR / "products.csv"
 SEED_POLICY_TXT = SEED_DIR / "policy.txt"
 SEED_QUICK_ACTIONS_CSV = SEED_DIR / "quick_actions.csv"

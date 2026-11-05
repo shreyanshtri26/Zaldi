@@ -65,7 +65,7 @@ export default function AdminWorkspace() {
   );
 
   return (
-    <AppShell nav={nav} actions={actions} status={stats ? { label: "Connected", ok: true } : { label: "Connecting…" }}> id === view)[1]} section="Admin" status={stats ? { label: "Connected", ok: true } : { label: "Connecting…" }} sidebar={sidebar} footer={footer} subtitle="Admin workspace">
+    <AppShell nav={nav} actions={actions} status={stats ? { label: "Connected", ok: true } : { label: "Connecting…" }}>
       <div className="page" ref={pageRef}>
         <div className="page-in">
         {view === "overview" && (stats ? <Dashboard stats={stats} onNavigate={goTo} /> : <div className="empty">Loading…</div>)}

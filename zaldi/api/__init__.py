@@ -1,7 +1,7 @@
 """HTTP API: everything under ``/api`` (plus the demo storefront under ``/store-sim``)."""
 from flask import Blueprint, Flask
 
-from zaldi.api import admin, chat, shop, site
+from zaldi.api import admin, agents, chat, shop, site
 from zaldi.api.content import make_content_blueprint
 from zaldi.api.errors import register_error_handlers
 from zaldi.checkout.store_sim import bp as store_sim_bp
@@ -11,7 +11,7 @@ CONTENT_TABLES = ("products", "policies", "quick_actions")
 
 def register_api(app: Flask) -> None:
     api = Blueprint("api", __name__, url_prefix="/api")
-    for child in (chat.bp, shop.bp, admin.bp, site.bp, *(make_content_blueprint(t) for t in CONTENT_TABLES)):
+    for child in (chat.bp, shop.bp, admin.bp, agents.bp, site.bp, *(make_content_blueprint(t) for t in CONTENT_TABLES)):
         api.register_blueprint(child)
     app.register_blueprint(api)
     app.register_blueprint(store_sim_bp)

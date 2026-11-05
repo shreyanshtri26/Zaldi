@@ -13,6 +13,8 @@ def temp_db(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "EMBEDDING_PROVIDER", "local")  # offline, deterministic
     monkeypatch.setattr(config, "ROUTER_CACHE_DIR", tmp_path / "router_cache")
     monkeypatch.setattr(config, "ADMIN_TOKEN", ADMIN_TOKEN)
+    monkeypatch.setattr(config, "RATE_LIMIT_CHAT", 0)  # limits are tested explicitly
+    monkeypatch.setattr(config, "RATE_LIMIT_LOGIN", 0)
     return tmp_path
 
 

@@ -20,5 +20,5 @@
 .badge.bad { background: var(--danger-soft); color: var(--danger); } .badge.teal { background: var(--accent-soft); color: var(--brand); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
 .err { color: var(--danger); margin: 6px 0; }
-.btn:not(.ghost):not(.danger) { background: var(--brand-grad); box-shadow: 0 6px 18px rgba(232, 99, 44, .22); }
+.btn:not(.ghost):not(.danger) { background: var(--brand-grad); box-shadow: 0 6px 18px color-mix(in srgb, var(--c-sky) 25%, transparent); }
 .chip.active { background: var(--brand-grad); border-color: transparent; }

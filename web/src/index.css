@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { min-height: 100%; }
+  body { @apply bg-app text-ink font-sans text-[13px] antialiased; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-primary; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { @apply rounded bg-line; }
+}
+
+@layer components {
+  .input { @apply w-full rounded-lg border border-line bg-surface2 px-3 py-2 text-ink placeholder:text-mute focus:border-primary focus:outline-none; }
+  .label { @apply mb-1 block text-[12px] font-medium text-ink2; }
+  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-[.12em] text-primary; }
+}

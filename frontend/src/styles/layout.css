@@ -6,7 +6,7 @@
 .topbar .spacer { flex: 1; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .brand b { font: 700 16px var(--font-display); color: var(--ink); letter-spacing: -.02em; }
-.mark { flex: none; width: 32px; height: 32px; border-radius: 9px; background: #fff url(/zaldi_logo.png) 50% 31% / 560% auto no-repeat; border: 1px solid var(--border); }
+.mark { flex: none; width: 32px; height: 32px; border-radius: 9px; background: #fff var(--mark-url, url(/zaldi_mark.svg)) 50% 50% / 78% auto no-repeat; border: 1px solid var(--border); }
 .mark.lg { width: 56px; height: 56px; border-radius: 16px; }
 .main { position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .label { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 4px; }
@@ -19,3 +19,6 @@
 .tab .count { font-size: 11px; background: var(--amber-soft); color: var(--amber); padding: 1px 7px; border-radius: 99px; }
 .chat-title { color: var(--muted); font-size: 13px; max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 860px) { .topbar { padding: 0 12px; gap: 8px; } .brand b { display: none; } .chat-title { display: none; } }
+/* selected top-bar tab: dark content on the brand fill so icon and badge stay visible */
+.tabs .tab.active, .tabs .tab.active svg { color: var(--brand-ink); }
+.tabs .tab.active .count { background: color-mix(in srgb, var(--brand-ink) 18%, transparent); color: var(--brand-ink); }
