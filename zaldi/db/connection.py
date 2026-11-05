@@ -21,7 +21,7 @@ def connect(readonly: bool = False) -> Iterator[sqlite3.Connection]:
     if readonly:
         conn = sqlite3.connect(f"file:{config.DB_PATH.as_posix()}?mode=ro", uri=True)
     else:
-        conn = sqlite3.connect(config.DB_PATH)
+        conn = sqlite3.connect(config.DB_PATH, timeout=30)  # several gunicorn workers share this file
     conn.row_factory = sqlite3.Row
     try:
         yield conn
@@ -45,5 +45,7 @@ def init_db() -> None:
     config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect() as conn:
         conn.executescript(SCHEMA_FILE.read_text(encoding="utf-8"))
+        # Workers boot together: the write lock makes the second one wait, then find the tables already seeded.
+        conn.execute("BEGIN IMMEDIATE")
         _migrate(conn)
         seed_if_empty(conn)

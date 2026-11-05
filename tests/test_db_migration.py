@@ -30,3 +30,20 @@ def test_init_db_is_idempotent(temp_db):
     init_db()
     assert len(content_repo.list_rows("products")) == first
     assert len(content_repo.list_rows("quick_actions")) == 4
+
+
+def test_concurrent_first_boots_seed_once(tmp_path):
+    """Several gunicorn workers booting on an empty database must not collide on the seed rows.
+
+    Real processes are needed: threads in one process do not reproduce the race. (Without the write lock in
+    init_db this fails roughly every other run, so a pass is strong evidence rather than proof.)
+    """
+    import os
+    import subprocess
+    import sys
+
+    env = os.environ | {"DATA_DIR": str(tmp_path), "EMBEDDING_PROVIDER": "local"}
+    cmd = [sys.executable, "-c", "from zaldi.db import init_db; init_db()"]
+    procs = [subprocess.Popen(cmd, env=env, stderr=subprocess.PIPE, text=True) for _ in range(8)]
+    errors = [err for p in procs for err in [p.communicate()[1]] if p.returncode != 0]
+    assert not errors, errors
