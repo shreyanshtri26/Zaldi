@@ -1,0 +1,49 @@
+name: Test and deploy
+
+# Every push to main: run the tests, then publish the frontend to Cloudflare Pages (zaldi.pages.dev).
+# The API on Render redeploys itself from the same commit (Render -> Settings -> Build & Deploy -> Auto-Deploy).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: playwright install --with-deps chromium  # the checkout automation tests drive a real browser
+      - run: python -m pytest -m "not live" -q
+        env:
+          BROWSER_NO_SANDBOX: "1"
+
+  deploy-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=zaldi --branch=main
