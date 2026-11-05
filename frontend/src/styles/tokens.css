@@ -1,0 +1,26 @@
+/* ---------- Design tokens: warm charcoal surfaces with orange accents (dark by default) ---------- */
+:root {
+  --bg: #0c0d0f; --surface: #141517; --surface-2: #1b1c1f; --sidebar-bg: #101113; --border: #292a2e;
+  --ink: #f5f2ef; --muted: #929096;
+  --brand: #e8632c; --brand-ink: #ffffff; --brand-grad: linear-gradient(135deg, #f17b42, #d95127);
+  --accent: #ff9258; --accent-soft: rgba(239, 107, 50, .14);
+  --amber: #e9a36d; --amber-soft: #2a2118; --danger: #ff7a6b; --danger-soft: #3a1d19; --ok: #65c995; --ok-soft: #17271d;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px rgba(0, 0, 0, .35);
+  --radius: 14px; --radius-sm: 10px; --sidebar: 252px; --header: 68px;
+  --t: 160ms ease;
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Manrope", "DM Sans", system-ui, sans-serif;
+  /* assistant status card and hero */
+  --agent-deep: #640300; --agent-dark: #1a0705; --agent-red: #cc2600; --agent-orange: #ea5a15; --agent-ink: #e9bc8d;
+  --agent-line: #4a2a1e; --agent-glow: rgba(234, 90, 21, .25); --agent-wash: rgba(234, 90, 21, .07);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f4f1; --surface: #ffffff; --surface-2: #f0ece8; --sidebar-bg: #ffffff; --border: #e6e0da;
+    --ink: #1a1715; --muted: #7d7670;
+    --brand: #d9561f; --accent: #d9561f; --accent-soft: #fdece3;
+    --amber: #a96a2c; --amber-soft: #f7eddd; --danger: #c0392b; --danger-soft: #fbe9e6; --ok: #1e8e5a; --ok-soft: #e3f4ea;
+    --shadow: 0 1px 2px rgba(26, 23, 21, .06), 0 8px 24px rgba(26, 23, 21, .08);
+    --agent-line: #f0c9a8;
+  }
+}

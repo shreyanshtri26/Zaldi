@@ -1,0 +1,11 @@
+services:
+  zaldi:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env          # GOOGLE_API_KEY / GROQ_API_KEY, ADMIN_TOKEN, SECRET_KEY (see .env.example)
+    volumes:
+      - zaldi-data:/app/data   # SQLite database + search indexes survive restarts
+    restart: unless-stopped
+volumes:
+  zaldi-data:

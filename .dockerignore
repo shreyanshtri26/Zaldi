@@ -1,0 +1,16 @@
+venv/
+.venv/
+node_modules/
+frontend/dist/
+frontend/node_modules/
+__pycache__/
+*.pyc
+.git/
+.env
+data/zaldi.db
+data/policy_index/
+data/product_index/
+data/router_cache/
+tests/
+docs/
+.pytest_cache/

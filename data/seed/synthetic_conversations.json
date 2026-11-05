@@ -1,0 +1,34 @@
+[
+    {
+        "conversation": "Human: Hi! Aaj kal baarish bahut ho rahi hai.\nAI: Haan, monsoon poora swing mein hai! Aap kya plan kar rahe ho aaj?\nHuman: Bas ghar par movie dekhne ka mann hai.\nAI: Mazaa aayega! Waise monsoon mein light cotton kurtas bahut comfortable rehte hain.",
+        "category": "chitchat"
+    },
+    {
+        "conversation": "Human: Diwali ki taiyari shuru ho gayi?\nAI: Bilkul! Ghar ki safai aur rangoli ke saath. Aapke Diwali plans kya hain?\nHuman: Family ke saath puja aur dinner.\nAI: Sounds lovely! Festive season mein log aksar silk kurtas aur sarees choose karte hain.",
+        "category": "chitchat"
+    },
+    {
+        "conversation": "Human: Who do you think will win the cricket match today?\nAI: It is going to be a nail-biter! Are you watching it at home or with friends?\nHuman: With friends, we are ordering biryani.\nAI: Perfect plan! If you are hosting, a comfortable cotton kurta is great for long match days.",
+        "category": "chitchat"
+    },
+    {
+        "conversation": "Human: Hi, I am looking for a saree for my cousin's wedding.\nAI: Congratulations! Are you thinking of a silk saree, such as Banarasi or Kanjivaram, or something lighter?\nHuman: Banarasi, budget around Rs. 10,000.\nAI: Our Banarasi Silk Saree in maroon with a zari border is Rs. 8,999 and comes with a blouse piece. Would you like to see other colours?",
+        "category": "product"
+    },
+    {
+        "conversation": "Human: Mujhe ek kurta chahiye office ke liye, size L.\nAI: Zaroor! Hamare paas Chikankari Cotton Kurta Rs. 1,499 mein aur Jaipuri Block Print Kurti Rs. 899 mein hai.\nHuman: Men's kurta hai kya?\nAI: Ji, Silk Kurta for Men Rs. 2,199 mein L size mein available hai.",
+        "category": "product"
+    },
+    {
+        "conversation": "Human: Do you have a sherwani for a groom, size 42?\nAI: Yes! Our Embroidered Sherwani in cream with gold thread work is Rs. 12,999 and available in 42, with a matching stole.\nHuman: Do you offer COD?\nAI: Yes, COD is available up to Rs. 15,000 with a Rs. 49 fee, and you can also pay by UPI or card.",
+        "category": "product"
+    },
+    {
+        "conversation": "Human: What is your return policy for sarees?\nAI: You can return unused sarees with tags within 7 days of delivery. Sarees with fall and pico done cannot be returned.\nHuman: And how long does the refund take?\nAI: Prepaid refunds reach your original payment source in 5-7 business days after quality check.",
+        "category": "product"
+    },
+    {
+        "conversation": "Human: Kya aap GST invoice dete ho?\nAI: Ji haan, har order ke saath GST invoice email hota hai. Business GSTIN checkout par add kar sakte hain.\nHuman: Delivery Bangalore mein kitne din?\nAI: Metro cities mein 2-4 business days lagte hain. Express delivery Rs. 149 mein 1-2 din mein hoti hai.",
+        "category": "product"
+    }
+]

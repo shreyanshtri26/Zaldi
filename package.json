@@ -1,0 +1,21 @@
+{
+  "name": "zaldi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An AI-powered product assistant for an Indian ethnic-fashion store: Flask API + React frontend with a built-in CMS.",
+  "scripts": {
+    "install:frontend": "npm --prefix frontend install",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "test": "python -m pytest -m \"not live\"",
+    "start": "python wsgi.py"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shreyanshtri26/Zaldi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shreyanshtri26/Zaldi/issues"
+  },
+  "homepage": "https://github.com/shreyanshtri26/Zaldi#readme"
+}

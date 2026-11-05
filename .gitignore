@@ -1,0 +1,15 @@
+__pycache__
+.env
+venv/
+node_modules/
+frontend/dist/
+data/zaldi.db
+data/policy_index/
+models/opendaisy/
+*.bin
+*.pt
+*.pth
+_legacy/
+data/router_cache/
+.pytest_cache/
+data/product_index/
