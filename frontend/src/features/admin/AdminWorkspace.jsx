@@ -4,6 +4,8 @@ import AppShell from "../../shared/components/AppShell.jsx";
 import Icon from "../../shared/components/Icon.jsx";
 import useLenis from "../../shared/hooks/useLenis.js";
 import { useAuth } from "../../shared/context/AuthContext.jsx";
+import Skeleton from "../../shared/components/Skeleton.jsx";
+
 import ChatsView from "./ChatsView.jsx";
 import ContentView from "./content/ContentView.jsx";
 import Dashboard from "./Dashboard.jsx";
@@ -68,7 +70,7 @@ export default function AdminWorkspace() {
     <AppShell nav={nav} actions={actions} status={stats ? { label: "Connected", ok: true } : { label: "Connecting…" }}>
       <div className="page" ref={pageRef}>
         <div className="page-in">
-        {view === "overview" && (stats ? <Dashboard stats={stats} onNavigate={goTo} /> : <div className="empty">Loading…</div>)}
+        {view === "overview" && (stats ? <Dashboard stats={stats} onNavigate={goTo} /> : <Skeleton cards={4} />)}
         {view === "products" && <ProductsView key={presetQuery} initialQuery={presetQuery} />}
         {view === "policies" && <PoliciesView key={presetQuery} initialQuery={presetQuery} />}
         {view === "chats" && <ChatsView chats={stats?.recent_chats || []} />}

@@ -68,7 +68,7 @@ export default function ProductsView({ initialQuery = "" }) {
   return (
     <div className="col-wide">
       <div className="page-head">
-        <div><div className="eyebrow">Catalogue</div><h2>Products</h2><p>{rows ? `${shown.length} of ${rows.length} products` : "Loading…"}</p></div>
+        <div><h2>Products</h2><p>{rows ? `${shown.length} of ${rows.length} products` : "Loading…"}</p></div>
         <span className="spacer" />
         <button className="btn" onClick={() => setForm({})}><Icon name="plus" size={16} /> Add product</button>
       </div>

@@ -35,7 +35,7 @@ export default function PoliciesView({ initialQuery = "" }) {
   return (
     <div className="col-wide">
       <div className="page-head">
-        <div><div className="eyebrow">Store knowledge</div><h2>Policies</h2><p>The chatbot answers shipping, payment, returns and support questions from these.</p></div>
+        <div><h2>Policies</h2><p>The chatbot answers shipping, payment, returns and support questions from these.</p></div>
         <span className="spacer" />
         <button className="btn" onClick={() => setForm({})}><Icon name="plus" size={16} /> Add policy</button>
       </div>

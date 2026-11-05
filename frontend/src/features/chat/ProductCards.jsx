@@ -7,8 +7,8 @@ export default function ProductCards({ products, onAdd, busyId }) {
     <div className="p-grid">
       {products.map((p, i) => (
         <article key={p.id} className="p-card" style={{ animationDelay: `${i * 50}ms` }}>
-          <div className="p-thumb" style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : { background: `linear-gradient(135deg, hsl(${hue(p.product_name)} 45% 32%), hsl(${(hue(p.product_name) + 40) % 360} 50% 18%))` }}>
-            {!p.image_url && <span>{p.category}</span>}
+          <div className="p-thumb" style={p.image_url ? undefined : { background: `linear-gradient(135deg, hsl(${hue(p.product_name)} 45% 32%), hsl(${(hue(p.product_name) + 40) % 360} 50% 18%))` }}>
+            {p.image_url ? <img src={p.image_url} alt={p.product_name} decoding="async" /> : <span>{p.category}</span>}
             <b className="p-num">{i + 1}</b>
           </div>
           <div className="p-body">

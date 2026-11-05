@@ -1,10 +1,6 @@
-import Icon from "./Icon.jsx";
+import Orb from "./Orb.jsx";
 
-// The AI chatbot symbol: used as the assistant's avatar in chat.
+// The assistant's avatar in chat: the small Zaldi orb. It shows the thinking state while a reply is being prepared.
 export default function BotAvatar({ size = 30, active = false }) {
-  return (
-    <span className={`bot-avatar${active ? " active" : ""}`} style={{ width: size, height: size }} role="img" aria-label="Zaldi AI">
-      <Icon name="bot" size={Math.round(size * 0.62)} />
-    </span>
-  );
+  return <Orb size={size} state={active ? "processing" : "idle"} />;
 }

@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import Accent from "../../shared/components/Accent.jsx";
 import BotAvatar from "../../shared/components/BotAvatar.jsx";
 import Icon from "../../shared/components/Icon.jsx";
+import Orb from "../../shared/components/Orb.jsx";
 import { useSiteConfig } from "../../shared/context/SiteConfigContext.jsx";
 import useLenis from "../../shared/hooks/useLenis.js";
 import { AgentCompleted, AgentWorking } from "./AgentStatus.jsx";
 import ProductCards from "./ProductCards.jsx";
+import Typed from "./Typed.jsx";
 
 function Reply({ message, onAdd, addingId, onOpenCart }) {
   const [copied, setCopied] = useState(false);
+  // A reply that has just arrived types itself in; older messages (history, reload) appear at once.
+  const [animate] = useState(() => !message.error && Boolean(message.at) && Date.now() - message.at < 4000);
+  const [done, setDone] = useState(!animate);
   const copy = async () => {
     try { await navigator.clipboard.writeText(message.text); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch {}
   };
@@ -16,11 +22,11 @@ function Reply({ message, onAdd, addingId, onOpenCart }) {
       <BotAvatar />
       <div style={{ flex: 1, minWidth: 0 }}>
         {!message.error && <AgentCompleted route={message.route} ms={message.ms} />}
-        <div className={`reply${message.error ? " error" : ""}`}>{message.text}</div>
-        <ProductCards products={message.products} onAdd={onAdd} busyId={addingId} />
-        {message.route === "cart" && message.cartCount > 0 && <button className="btn ghost sm cta" onClick={() => onOpenCart("cart")}><Icon name="cart" size={15} /> View cart</button>}
-        {message.action === "collect_address" && <button className="btn sm cta" onClick={() => onOpenCart("address")}>Enter delivery details</button>}
-        {!message.error && (
+        <div className={`reply${message.error ? " error" : ""}`}><Typed text={message.text} animate={animate} onDone={() => setDone(true)} /></div>
+        {done && <ProductCards products={message.products} onAdd={onAdd} busyId={addingId} />}
+        {done && message.route === "cart" && message.cartCount > 0 && <button className="btn ghost sm cta" onClick={() => onOpenCart("cart")}><Icon name="cart" size={15} /> View cart</button>}
+        {done && message.action === "collect_address" && <button className="btn sm cta" onClick={() => onOpenCart("address")}>Enter delivery details</button>}
+        {done && !message.error && (
           <div className="reply-actions">
             <button className="icon-btn" onClick={copy} aria-label="Copy reply" title={copied ? "Copied" : "Copy"}><Icon name="copy" size={16} /></button>
           </div>
@@ -30,10 +36,20 @@ function Reply({ message, onAdd, addingId, onOpenCart }) {
   );
 }
 
-function Composer({ busy, onSend, placeholder, boxRef, photo = true }) {
+function Composer({ busy, onSend, onListening, placeholder, boxRef, photo = true }) {
   const [input, setInput] = useState("");
   const [image, setImage] = useState(null);
   const file = useRef(null);
+  const [listening, setListening] = useState(false);
+  useEffect(() => { onListening?.(listening); }, [listening, onListening]);
+  const Speech = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+  function dictate() {
+    const r = new Speech();
+    r.lang = "en-IN"; r.interimResults = false;
+    r.onresult = (e) => setInput((v) => (v ? v + " " : "") + e.results[0][0].transcript);
+    r.onend = r.onerror = () => setListening(false);
+    setListening(true); r.start();
+  }
   function submit() {
     const text = input.trim();
     if ((!text && !image) || busy) return;
@@ -56,6 +72,7 @@ function Composer({ busy, onSend, placeholder, boxRef, photo = true }) {
         <textarea id="msg" ref={boxRef} rows={1} value={input} onChange={grow} placeholder={image ? "Add a note (optional)" : placeholder}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }} />
       </div>
+      {Speech && <button type="button" className={`icon-btn mic${listening ? " on" : ""}`} aria-label="Voice input" aria-pressed={listening} title="Speak your message" disabled={listening} onClick={dictate}><Icon name="mic" size={18} /></button>}
       <button className="send" disabled={busy || (!input.trim() && !image)} aria-label="Send message"><Icon name="send" /></button>
     </form>
   );
@@ -70,12 +87,30 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onO
   const lenis = useLenis(wrapper);
   const empty = messages.length === 0;
 
+  // One state for every orb on screen, derived from what the chat is doing right now.
+  const [listening, setListening] = useState(false);
+  const [hidden, setHidden] = useState(document.hidden);
+  const [replied, setReplied] = useState(false);
+  useEffect(() => {
+    const on = () => setHidden(document.hidden);
+    document.addEventListener("visibilitychange", on);
+    return () => document.removeEventListener("visibilitychange", on);
+  }, []);
+  const last = messages[messages.length - 1];
+  useEffect(() => {
+    if (last?.role !== "bot") return;
+    setReplied(true);
+    const t = setTimeout(() => setReplied(false), 700);
+    return () => clearTimeout(t);
+  }, [last]);
+  const orbState = hidden || last?.error ? "inactive" : busy ? "processing" : listening ? "listening" : replied ? "responding" : "idle";
+
   useEffect(() => {
     if (lenis.current) lenis.current.scrollTo(end.current, { offset: 200 });
     else end.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy, lenis]);
 
-  const composer = <Composer busy={busy} onSend={onSend} placeholder={settings.input_placeholder} boxRef={box} photo={settings.photo_button !== "hide"} />;
+  const composer = <Composer busy={busy} onListening={setListening} onSend={onSend} placeholder={settings.input_placeholder} boxRef={box} photo={settings.photo_button !== "hide"} />;
 
   const pos = settings.bar_position;
   const inline = empty && pos === "center";
@@ -100,8 +135,9 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onO
         <div className="thread-in">
           {empty ? (
             <div className="welcome">
-              <span className="mark lg" role="img" aria-label="Zaldi" style={{ display: "inline-block" }} />
-              <h2>{settings.welcome_heading}</h2>
+              <div className="welcome-orb"><Orb state={orbState} size={80} smoke /></div>
+              <p className="greeting">{settings.welcome_greeting}</p>
+              <h2><Accent text={settings.welcome_heading} /></h2>
               <p>{settings.welcome_subtitle}</p>
               {settings.cards_position === "above" && chips}
               {inline && composer}

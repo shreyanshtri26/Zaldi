@@ -7,14 +7,21 @@ An AI shopping assistant for an Indian ethnic-fashion store (sarees, kurtas, leh
 
 ## Features
 
-- **Chat** (React, ChatGPT-style): top-bar layout (no sidebar) with a History popover (stored in the browser), suggestion chips, product cards, a cart panel and a composer with photo search. Ask about products, prices in INR, sizes, COD/UPI, delivery, returns, GST invoices. All UI text is English; the assistant replies in the customer's language (English, Hindi or Hinglish), with a live plan while it works and a collapsible tool card under each answer.
-- **Admin panel** (`/admin`): overview, products (table/grid, category chips, sort, slide-over editor), policies, chat transcripts and `Ctrl+K` search. Light and dark themes in the logo's navy/teal palette.
-- **CMS-managed content** (admin → Content): the welcome text, brand name and tagline, the quick-action cards on the empty chat, and the assistant's prompts can all be edited without code. Every value starts as a built-in default; clearing a field or pressing "Reset to default" restores it. Prompt edits apply to the very next customer message.
+- **Chat** (React): a raised graphite top bar (no sidebar) with **New chat** on the left and History, assistant settings, cart and apps on the right, a 3D lime **Zaldi orb** that reflects what the assistant is doing (idle, listening, thinking, replying, offline), suggestion chips, product cards, a cart panel and a composer with photo search and **voice input** (browser speech recognition, shown only where supported). While a reply is prepared a status box shows "Zaldi is responding" with a live plan, and a note appears if it takes longer than usual. Ask about products, prices in INR, sizes, COD/UPI, delivery, returns, GST invoices. All UI text is English; the assistant replies in the customer's language (English, Hindi or Hinglish), with a live plan while it works and a collapsible tool card under each answer.
+- **Admin panel** (`/admin`): overview, products (table/grid, category chips, sort, slide-over editor), policies, chat transcripts and `Ctrl+K` search. Light and dark themes in the Obsidian Black x Electric Lime palette; the overview cards link straight to the matching list.
+- **CMS-managed content** (admin → Content): the welcome greeting ("Hi there, Zaldi."), heading (wrap words in `*stars*` to highlight them), text, brand name and tagline, the five brand colours (which also recolour the logo and tab icon), the quick-action cards on the empty chat, and the assistant's prompts can all be edited without code. Every value starts as a built-in default; clearing a field or pressing "Reset to default" restores it. Prompt edits apply to the very next customer message.
 - **Agentic shopping pipeline** (see `docs/IMPLEMENTATION_PLAN.md`): guardrails -> optional photo (vision) -> semantic router (products / cart / checkout / chitchat) -> entity extraction -> hybrid search -> cart -> browser-automated checkout that **stops for your confirmation**. The LLM only words the final reply; everything else is deterministic and testable offline.
 - **Hybrid search**: free text becomes structured filters (budget, colour, size, category, brand, gender; English/Hinglish), applied as hard SQL filters, then ranked by FAISS vector similarity + lexical match (RRF). Saved shopper preferences are injected automatically; if nothing matches, soft filters are relaxed and the reply says so.
 - **Cart and checkout**: stock-checked cart, shipping/coupon pricing from the store policy, then a Playwright run fills a multi-step checkout (built-in demo storefront at `/store-sim`, or point `STOREFRONT_URL` at another) and halts before payment. The customer confirms with a signed, expiring, single-use token. Addresses are typed into a form, never into the chat/LLM; no card or UPI details are ever handled.
 - **Guardrails**: PII (phone, email, Aadhaar, PAN, card, UPI) is redacted before any LLM call and from logs; prompt-injection messages are refused before any model runs; replies are scrubbed for PII and system-prompt leaks.
 - **Embeddings**: Gemini by default; with no `GOOGLE_API_KEY` (or `EMBEDDING_PROVIDER=local`) an offline hashing embedder keeps everything working (word-level matching only).
+
+## Design system
+
+- **Palette** (editable in admin -> Content -> Storefront): Black `#090B0A`, Electric Lime `#C1F75A`, Graphite `#202622`, Leaf Green `#79B83D`, Silver `#D8DED8`. `frontend/src/styles/tokens.css` derives every surface, border, text and focus colour from these with `color-mix`, in a dark theme (default) and a light theme. Status colours (success, warning, error, info) are fixed per theme.
+- **Type and icons**: Inter; one hand-tuned SVG icon family in `shared/components/Icon.jsx` (no icon library).
+- **Motion**: smooth scrolling with [Lenis](https://lenis.dev/); the orb and smoke respect `prefers-reduced-motion`. The orb's smoke is a small WebGL shader with a CSS fallback.
+- **Speed**: one cached bundle (about 70 KB gzipped). Flask serves `/assets/*` with a one-year immutable cache and `index.html` with `no-cache`.
 
 ## Architecture
 
@@ -160,13 +167,14 @@ python -m pytest -m "not live"     # offline: API, CMS, SQL guard, SPA serving
 python -m pytest -m live           # real Google/Groq calls (needs keys and quota)
 ```
 
-Live tests skip themselves without `GOOGLE_API_KEY`. The Gemini free tier is limited (about 20 generations per day, 100 embeddings per minute), so run them sparingly. CI (`.github/workflows/ci.yml`) runs the offline tests and builds the frontend; there is no deploy step yet.
+Live tests skip themselves without `GOOGLE_API_KEY`. `tests/api/test_rate_limit.py::test_chat_is_limited_per_visitor` calls the real model, so it fails when the quota is exhausted. The Gemini free tier is limited (about 20 generations per day, 100 embeddings per minute), so run them sparingly. CI (`.github/workflows/ci.yml`) runs the offline tests and builds the frontend; there is no deploy step yet.
 
 ## Troubleshooting
 
 - **`Request failed (500)` / "Backend is not running"** in the dev UI: the Vite server on :5173 cannot reach Flask on :5000. Start `python wsgi.py` (from the activated venv).
 - **`No module named 'langchain_classic'`** in a chat error: Flask is running under a Python without the project packages. Activate the venv (`venv\Scripts\activate`) or run `pip install -r requirements.txt` in the interpreter you use.
-- **`429 RESOURCE_EXHAUSTED`**: the Gemini free-tier quota is used up. Wait, or set `LLM_PROVIDER=groq` and `LLM_MODEL=openai/gpt-oss-120b`.
+- **"Zaldi is very busy right now. Please try again in a few minutes."**: the model provider rejected the request (for example Gemini `429 RESOURCE_EXHAUSTED`, free tier about 20 generations a day). The customer sees only this message; the detail is in the server log. Wait for the quota to reset, or set `LLM_PROVIDER=groq` and `LLM_MODEL=openai/gpt-oss-120b`. Product and policy questions still get a plain-text answer without the model; model calls use one retry and a 15 second timeout so fallbacks arrive quickly.
+- **Dev UI shows old styles or components**: if the project lives in OneDrive, Vite can miss file changes. Restart `npm run dev`.
 
 ## Known limitations
 

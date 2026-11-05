@@ -23,7 +23,7 @@
 .composer { max-width: 760px; margin: 0 auto; display: flex; align-items: flex-end; gap: 8px; padding: 10px 10px 10px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); transition: border-color var(--t), box-shadow var(--t); }
 .composer:focus-within { border-color: var(--agent-line); box-shadow: var(--shadow), 0 0 0 4px var(--accent-soft); }
 .composer textarea { flex: 1; border: 0; outline: 0; background: transparent; resize: none; max-height: 160px; min-height: 24px; line-height: 24px; padding: 6px 0; }
-.send { width: 38px; height: 38px; flex: none; border-radius: 50%; border: 0; background: var(--brand-grad); color: var(--brand-ink); display: grid; place-items: center; transition: transform var(--t), opacity var(--t); }
+.send { width: 38px; height: 38px; flex: none; border-radius: 50%; border: 0; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; transition: transform var(--t), opacity var(--t); }
 .send:disabled { opacity: .3; cursor: default; } .send:not(:disabled):hover { transform: scale(1.06); } .send:not(:disabled):active { transform: scale(.92); }
 .hint { text-align: center; color: var(--muted); font-size: 11.5px; margin-top: 8px; }
 
@@ -40,3 +40,31 @@
 .chips.above { margin: 0 0 18px; }
 .composer { max-width: var(--bar-w, 760px); border-radius: var(--bar-r, 22px); }
 .composer-wrap.top { padding: 16px 20px 0; }
+
+/* ---------- Welcome screen: flat, spacious, restrained ---------- */
+.welcome { position: relative; }
+.welcome .greeting { display: flex; width: fit-content; margin: 22px auto 0; align-items: center; gap: 8px; padding: 5px 12px 5px 10px; border-radius: 99px;
+  font-size: 12.5px; font-weight: 500; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border); }
+.welcome .greeting::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.welcome .greeting + h2 { margin-top: 10px; }
+.welcome h2 { font-size: clamp(34px, 5.4vw, 56px); line-height: 1.05; letter-spacing: -.04em; font-weight: 700; color: var(--ink); text-wrap: balance; }
+.welcome h2 .accent { font-style: normal; color: var(--accent); }
+.welcome p:not(.greeting) { max-width: 46ch; margin: 0 auto 36px; color: var(--muted); font-size: 16px; line-height: 1.6; text-wrap: balance; }
+.welcome .composer { box-shadow: var(--shadow); }
+.composer:focus-within { border-color: var(--accent); box-shadow: var(--shadow); }
+.chip { background: var(--surface); transition: transform 200ms ease, color var(--t), border-color var(--t), background var(--t); }
+.chip:hover { transform: translateY(-1px); background: var(--surface-2); border-color: var(--accent); }
+.chip:active { transform: translateY(0) scale(.98); }
+.chip svg { color: var(--ink-2); } .chip:hover svg { color: var(--accent); }
+.send:disabled { background: var(--surface-3); color: var(--disabled); opacity: 1; }
+.send { background: var(--brand); color: var(--brand-ink); } .send:not(:disabled):hover { background: var(--brand-hover); }
+.mic.on { color: var(--brand-ink); background: var(--brand); }
+.welcome > * { animation: rise3d 650ms cubic-bezier(.22, 1, .36, 1) both; }
+.welcome > :nth-child(2) { animation-delay: 50ms; } .welcome > :nth-child(3) { animation-delay: 100ms; } .welcome > :nth-child(4) { animation-delay: 150ms; }
+.welcome > :nth-child(5) { animation-delay: 200ms; } .welcome > :nth-child(6) { animation-delay: 250ms; }
+@keyframes rise3d { from { opacity: 0; transform: translateY(14px); } }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  .chip { transform: none !important; transition: none; }
+  .welcome > * { animation: none; } html { scroll-behavior: auto; }
+}

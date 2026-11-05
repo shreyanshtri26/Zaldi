@@ -1,0 +1,36 @@
+/* ---------- Zaldi orb: lime sphere, zari thread, restrained glow. All colours derive from the brand palette. ---------- */
+.orb3d { --orb: 80px; --orb-hi: color-mix(in srgb, var(--c-lime) 55%, #fff); --orb-deep: color-mix(in srgb, var(--c-leaf) 38%, #000);
+  position: relative; display: inline-block; flex: none; width: var(--orb); height: var(--orb); vertical-align: middle; }
+.orb-body { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; transition: filter 250ms ease, box-shadow 250ms ease;
+  background: radial-gradient(circle at 50% 44%, var(--c-lime) 0, var(--c-leaf) 64%, var(--orb-deep) 100%);
+  box-shadow: inset calc(var(--orb) * -.08) calc(var(--orb) * -.13) calc(var(--orb) * .24) rgba(0, 0, 0, .38),
+    inset calc(var(--orb) * .04) calc(var(--orb) * .05) calc(var(--orb) * .1) color-mix(in srgb, var(--orb-hi) 55%, transparent),
+    0 0 calc(var(--orb) * .3) color-mix(in srgb, var(--c-lime) 26%, transparent); }
+.orb-body::before { content: ""; position: absolute; inset: 0; border-radius: 50%; opacity: 0; mix-blend-mode: soft-light; transition: opacity 250ms ease;
+  background: conic-gradient(from 0deg, transparent 0 58%, rgba(255, 255, 255, .7) 78%, transparent 92%); }
+.orb-body::after { content: ""; position: absolute; left: 15%; top: 8%; width: 40%; height: 26%; border-radius: 50%; transform: rotate(-26deg); filter: blur(calc(var(--orb) * .02));
+  background: radial-gradient(ellipse at 40% 40%, color-mix(in srgb, var(--orb-hi) 90%, #fff) 0, transparent 72%); opacity: .85; }
+/* zari thread: a hairline of light that circles the sphere while the assistant works */
+.orb-thread { position: absolute; inset: calc(var(--orb) * -.07); border-radius: 50%; opacity: 0; transition: opacity 250ms ease;
+  background: conic-gradient(from 0deg, transparent 0 74%, var(--c-lime) 94%, transparent 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px)); }
+.smoke { position: absolute; left: 50%; top: 50%; width: 240%; height: 240%; transform: translate(-50%, -50%); pointer-events: none; }
+.smoke-css i { position: absolute; border-radius: 50%; filter: blur(14px); opacity: .22; background: radial-gradient(circle, var(--c-lime), transparent 70%); animation: smoke-drift 9s ease-in-out infinite; }
+.smoke-css i:nth-child(1) { inset: 22% 40% 40% 12%; } .smoke-css i:nth-child(2) { inset: 40% 12% 20% 40%; animation-delay: -3s; } .smoke-css i:nth-child(3) { inset: 10% 30% 55% 30%; animation-delay: -6s; background: radial-gradient(circle, var(--c-leaf), transparent 70%); }
+@keyframes smoke-drift { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(6%, -8%) scale(1.15); } }
+
+/* states */
+.orb3d[data-state="idle"] .orb-body { animation: orb-breathe 5s ease-in-out infinite; }
+.orb3d[data-state="listening"] .orb-body { animation: orb-breathe 2.4s ease-in-out infinite; filter: brightness(1.1) saturate(1.05); }
+.orb3d[data-state="processing"] .orb-body::before { opacity: 1; animation: orb-spin 2.2s linear infinite; }
+.orb3d[data-state="processing"] .orb-thread { opacity: .95; animation: orb-spin 2.2s linear infinite; }
+.orb3d[data-state="responding"] .orb-body { animation: orb-lift 650ms ease-out; }
+.orb3d[data-state="inactive"] .orb-body { filter: saturate(.55) brightness(.75); }
+.orb3d[data-small] .orb-body { animation: none !important; box-shadow: inset calc(var(--orb) * -.08) calc(var(--orb) * -.13) calc(var(--orb) * .24) rgba(0, 0, 0, .38), 0 0 8px color-mix(in srgb, var(--c-lime) 20%, transparent); }
+@keyframes orb-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+@keyframes orb-spin { to { transform: rotate(360deg); } }
+@keyframes orb-lift { 0% { filter: brightness(1.28); } 100% { filter: brightness(1); } }
+.welcome-orb { display: grid; place-items: center; height: 88px; margin: 0 auto 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .orb-body, .orb-body::before, .orb-thread, .smoke-css i { animation: none !important; transition: none; }
+}

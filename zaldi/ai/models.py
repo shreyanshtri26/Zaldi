@@ -13,10 +13,12 @@ def get_llm():
     if config.LLM_PROVIDER == "groq":
         from langchain_groq import ChatGroq
 
-        return ChatGroq(temperature=0, model=config.LLM_MODEL, api_key=config.GROQ_API_KEY)
+        return ChatGroq(temperature=0, model=config.LLM_MODEL, api_key=config.GROQ_API_KEY, max_retries=1, timeout=15)
     from langchain_google_genai import ChatGoogleGenerativeAI
 
-    return ChatGoogleGenerativeAI(temperature=0, model=config.LLM_MODEL, google_api_key=config.GOOGLE_API_KEY)
+    # One retry and a short timeout: if the model is rate limited, the plain-text fallback answers in seconds, not ~40s.
+    return ChatGoogleGenerativeAI(temperature=0, model=config.LLM_MODEL, google_api_key=config.GOOGLE_API_KEY,
+                                  max_retries=1, timeout=15)
 
 
 class HashingEmbeddings(Embeddings):

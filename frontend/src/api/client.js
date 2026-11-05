@@ -19,7 +19,7 @@ async function request(path, { method = "GET", body, token, form } = {}) {
   });
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again in a moment.");
   return data;
 }
 

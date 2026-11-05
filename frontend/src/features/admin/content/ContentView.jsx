@@ -12,7 +12,7 @@ export default function ContentView() {
     <div className="col-wide">
       <div className="page-head">
         <div>
-          <div className="eyebrow">Customise</div><h2>Content</h2>
+          <h2>Content</h2>
           <p>Everything starts with the built-in defaults. Change it here and the chat updates; reset to go back.</p>
         </div>
       </div>

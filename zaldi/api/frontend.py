@@ -12,5 +12,10 @@ def serve_frontend(path: str):
         return BUILD_HINT, 404
     relative = path.lstrip("/")
     if relative and (dist / relative).is_file():
-        return send_from_directory(dist, relative)
-    return send_from_directory(dist, "index.html")
+        response = send_from_directory(dist, relative)
+        if relative.startswith("assets/"):  # Vite fingerprints these names, so a changed file always gets a new URL
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+    response = send_from_directory(dist, "index.html")
+    response.headers["Cache-Control"] = "no-cache"  # always revalidate so a new build is picked up
+    return response

@@ -15,7 +15,7 @@ export default function PreferencesMenu() {
   };
   return (
     <details className="history">
-      <summary className="icon-btn" aria-label="Shopping preferences" title="Shopping preferences"><Icon name="sliders" size={17} /></summary>
+      <summary className="nav-btn" aria-label="Assistant settings" data-tip="Assistant settings"><Icon name="sliders" size={20} /></summary>
       <form className="history-pop prefs" onSubmit={save}>
         <b>Shopping preferences</b>
         <label>Max budget (Rs.)<input className="input" inputMode="numeric" value={prefs.max_price ?? ""} onChange={set("max_price")} placeholder="No limit" /></label>

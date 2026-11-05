@@ -11,7 +11,7 @@
 .cta { margin-top: 12px; }
 
 .cart-btn { position: relative; }
-.cart-btn .badge { position: absolute; top: 2px; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--brand-grad); color: var(--brand-ink); font-size: 10px; display: grid; place-items: center; }
+.cart-btn .badge { position: absolute; top: 2px; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--brand); color: var(--brand-ink); font-size: 10px; display: grid; place-items: center; }
 
 .attach { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 2px 4px 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: 12px; max-width: 100%; }
 .attach button { border: 0; background: none; color: inherit; padding: 0 6px; font-size: 14px; }
@@ -45,3 +45,6 @@
 
 .prefs { display: grid; gap: 10px; padding: 14px; width: min(300px, 90vw); }
 .prefs label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+
+.p-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.p-thumb .p-num { z-index: 1; }

@@ -8,15 +8,15 @@ from zaldi.errors import ValidationError
 SETTINGS = {
     "brand_name": ("Zaldi", 40),
     "tagline": ("Fashion assistant", 60),
-    "welcome_heading": ("What are you looking for today?", 120),
-    "welcome_subtitle": ("Ask about sarees, kurtas, sizes, delivery, returns or payments. "
-                         "You can write in English, Hindi or Hinglish.", 300),
+    "welcome_greeting": ("Hi there, Zaldi.", 60),
+    "welcome_heading": ("What's on *your mind*?", 120),  # *text* is shown in the accent colour
+    "welcome_subtitle": ("Your personal shopping assistant. Ready when you are.", 300),
     "input_placeholder": ("Type your message…", 80),
-    "color_navy": ("#19335A", 7),
-    "color_sky": ("#8FC8EB", 7),
-    "color_blue": ("#4675C0", 7),
-    "color_slate": ("#697A98", 7),
-    "color_silver": ("#B8BFD6", 7),
+    "color_black": ("#090B0A", 7),
+    "color_lime": ("#C1F75A", 7),
+    "color_graphite": ("#202622", 7),
+    "color_leaf": ("#79B83D", 7),
+    "color_silver": ("#D8DED8", 7),
     "font_family": ("default", 10),
     "font_size": ("14", 2),
     "cards_align": ("center", 6),

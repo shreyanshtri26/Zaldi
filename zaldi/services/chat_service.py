@@ -95,10 +95,18 @@ def _discover(query: str, session_id: str) -> dict:
             "filters": filters.to_dict(), "relaxed": dropped}
 
 
+SMALL_TALK_FALLBACK = ("Hi, I'm Zaldi. Ask me about sarees, kurtas, sizes, delivery, returns or payments, "
+                       "and I'll help you find the right piece.")
+
+
 def _chitchat(query: str) -> dict:
     from zaldi.ai.chitchat import create_chitchat_chain
 
-    return {"response": _as_text(create_chitchat_chain(get_llm()).invoke({"input": query}).content)}
+    try:
+        return {"response": _as_text(create_chitchat_chain(get_llm()).invoke({"input": query}).content)}
+    except Exception:
+        log.exception("LLM unavailable; using canned small-talk reply")
+        return {"response": SMALL_TALK_FALLBACK}
 
 
 def _checkout(session_id: str) -> dict:

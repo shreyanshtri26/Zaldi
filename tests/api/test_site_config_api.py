@@ -7,7 +7,8 @@ from zaldi.services import site_config
 def test_site_config_defaults_reproduce_the_original_ui(client):
     config = client.get("/api/site-config").get_json()
     assert config["settings"] == site_config.defaults()
-    assert config["settings"]["welcome_heading"] == "What are you looking for today?"
+    assert config["settings"]["welcome_greeting"] == "Hi there, Zaldi."
+    assert config["settings"]["welcome_heading"] == "What's on *your mind*?"
     assert [a["title"] for a in config["quick_actions"]] == ["Sarees", "Kurtas", "Payment", "Returns"]
     assert config["quick_actions"][0]["message"] == "Show me Banarasi sarees"
 

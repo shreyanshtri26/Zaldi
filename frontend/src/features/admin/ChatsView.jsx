@@ -8,7 +8,7 @@ export default function ChatsView({ chats }) {
   const current = chats.find((c) => c.id === selectedId) || chats[0];
   return (
     <div className="col-wide">
-      <div className="page-head"><div><div className="eyebrow">Conversations</div><h2>Chats</h2><p>Recent customer conversations and how the assistant handled them.</p></div></div>
+      <div className="page-head"><div><h2>Chats</h2><p>Recent customer conversations and how the assistant handled them.</p></div></div>
       {!chats.length ? <div className="card empty">No chats yet. Questions asked on the chat page will show up here.</div> : (
         <div className="split">
           <div className="card qlist" style={{ padding: 8 }}>

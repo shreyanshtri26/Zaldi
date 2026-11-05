@@ -1,28 +1,21 @@
 import { useEffect, useState } from "react";
 import Icon from "../../shared/components/Icon.jsx";
+import Orb from "../../shared/components/Orb.jsx";
 import { AGENT_STEPS, routeLabel } from "../../shared/utils/agentSteps.js";
 
-// Steps shown while waiting. The API has no streaming, so progress advances on a timer and holds on the last step.
-const PLAN = ["Understanding your request", "Checking store data", "Writing the answer"];
-
-// Live task card: plan with done / current / pending steps.
+// Compact waiting box: a title and blurred lines that "type" themselves. The API has no streaming, so there is no real
+// progress to show; a short note appears only if the reply is slow.
 export function AgentWorking() {
-  const [at, setAt] = useState(0);
+  const [slow, setSlow] = useState(false);
   useEffect(() => {
-    const t = setInterval(() => setAt((n) => Math.min(n + 1, PLAN.length - 1)), 1400);
-    return () => clearInterval(t);
+    const late = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(late);
   }, []);
   return (
     <div className="run-card" role="status" aria-live="polite">
-      <div className="run-head"><span className="orb" aria-hidden="true" /><b>Working</b><span className="run-meta">Step {at + 1} of {PLAN.length}</span></div>
-      <ol className="plan">
-        {PLAN.map((label, i) => (
-          <li key={label} className={i < at ? "done" : i === at ? "now" : ""}>
-            <span className="plan-dot">{i < at && <Icon name="check" size={11} />}</span>{label}
-          </li>
-        ))}
-      </ol>
-      <div className="agent-bar" aria-hidden="true"><i /></div>
+      <div className="run-head"><Orb state="processing" size={18} /><b>Zaldi is responding<span className="dots" aria-hidden="true"><i /><i /><i /></span></b></div>
+      <div className="typing" aria-hidden="true"><i /><i /><i /><b /></div>
+      {slow && <p className="run-slow">Taking a little longer than usual.</p>}
     </div>
   );
 }

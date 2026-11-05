@@ -1,37 +1,63 @@
-/* ---------- Design tokens: derived from the five brand colours (see --c-*) ---------- */
+/* ---------- Design tokens: Obsidian Black x Electric Lime ----------
+   Five brand colours (editable in Admin > Content > Storefront) drive every derived value below. */
 :root {
-  /* Brand palette (editable in the CMS) */
-  --c-navy: #19335A; --c-sky: #8FC8EB; --c-blue: #4675C0; --c-slate: #697A98; --c-silver: #B8BFD6;
+  --c-black: #090B0A; --c-lime: #C1F75A; --c-graphite: #202622; --c-leaf: #79B83D; --c-silver: #D8DED8;
 }
+/* Dark theme (default). Defaults resolve to: canvas #090B0A, surface #111512, raised #1A211B, elevated #222B23,
+   border #303A31, subtle border #252D26, text #F5F7F3 / #D8DED8 / #A0AAA0 / #737D73. */
 :root, .themed {
-  --bg: color-mix(in srgb, var(--c-navy) 42%, #000); --surface: color-mix(in srgb, var(--c-navy) 62%, #000);
-  --surface-2: color-mix(in srgb, var(--c-navy) 82%, #000); --sidebar-bg: var(--surface);
-  --border: color-mix(in srgb, var(--c-slate) 38%, var(--bg));
-  --ink: color-mix(in srgb, var(--c-silver) 65%, #fff); --muted: color-mix(in srgb, var(--c-slate) 55%, var(--c-silver));
-  --brand: var(--c-sky); --brand-ink: color-mix(in srgb, var(--c-navy) 70%, #000);
-  --brand-grad: linear-gradient(135deg, var(--c-sky), color-mix(in srgb, var(--c-sky) 70%, var(--c-blue)));
-  --accent: var(--c-sky); --accent-soft: color-mix(in srgb, var(--c-sky) 14%, transparent);
-  --amber: #e9a36d; --amber-soft: #2a2118; --danger: #ff7a6b; --danger-soft: #3a1d19; --ok: #65c995; --ok-soft: #17271d;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px rgba(0, 0, 0, .35);
+  --bg: var(--c-black);
+  --surface: color-mix(in srgb, var(--c-graphite) 35%, var(--c-black));
+  --surface-2: color-mix(in srgb, var(--c-graphite) 75%, var(--c-black));
+  --surface-3: color-mix(in srgb, var(--c-silver) 1.5%, var(--c-graphite));
+  --sidebar-bg: var(--surface);
+  --border: color-mix(in srgb, var(--c-silver) 9%, var(--c-graphite));
+  --border-subtle: color-mix(in srgb, var(--c-silver) 3%, var(--c-graphite));
+  --ink: color-mix(in srgb, #fff 74%, var(--c-silver));
+  --ink-2: var(--c-silver);
+  --muted: color-mix(in srgb, var(--c-silver) 70%, var(--c-graphite));
+  --disabled: color-mix(in srgb, var(--c-silver) 45%, var(--c-graphite));
+
+  --brand: var(--c-lime); --brand-ink: var(--c-black); --brand-hover: color-mix(in srgb, var(--c-lime) 88%, #fff);
+  --brand-grad: var(--brand);                      /* solid: no gradients in this identity */
+  --accent: var(--c-lime); --accent-2: var(--c-leaf);
+  --accent-soft: color-mix(in srgb, var(--c-lime) 12%, transparent);
+  --focus: var(--c-lime);
+
+  /* status: dark theme */
+  --ok: #65C98B; --amber: #E9AE55; --danger: #F17C72; --info: #8AB8ED;
+  --ok-soft: color-mix(in srgb, var(--ok) 12%, var(--bg)); --amber-soft: color-mix(in srgb, var(--amber) 12%, var(--bg));
+  --danger-soft: color-mix(in srgb, var(--danger) 12%, var(--bg)); --info-soft: color-mix(in srgb, var(--info) 12%, var(--bg));
+  --ok-line: color-mix(in srgb, var(--ok) 30%, transparent); --amber-line: color-mix(in srgb, var(--amber) 30%, transparent);
+  --danger-line: color-mix(in srgb, var(--danger) 30%, transparent); --info-line: color-mix(in srgb, var(--info) 30%, transparent);
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 8px 24px rgba(0, 0, 0, .28);
   --radius: 14px; --radius-sm: 10px; --sidebar: 252px; --header: 68px;
   --t: 160ms ease;
-  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Manrope", "DM Sans", system-ui, sans-serif;
-  /* assistant status card and hero */
-  --agent-deep: color-mix(in srgb, var(--c-blue) 45%, #000); --agent-dark: var(--bg); --agent-red: var(--c-blue);
-  --agent-orange: var(--c-sky); --agent-ink: var(--c-silver);
-  --agent-line: color-mix(in srgb, var(--c-blue) 35%, var(--bg));
-  --agent-glow: color-mix(in srgb, var(--c-sky) 25%, transparent); --agent-wash: color-mix(in srgb, var(--c-sky) 7%, transparent);
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* assistant status card / timeline: flat, no wash or glow */
+  --agent-deep: var(--c-leaf); --agent-dark: var(--bg); --agent-red: var(--c-leaf);
+  --agent-orange: var(--c-lime); --agent-ink: var(--c-silver);
+  --agent-line: var(--border);
+  --agent-glow: color-mix(in srgb, var(--c-lime) 16%, transparent); --agent-wash: transparent;
 }
+/* Light theme. The chat navbar stays white regardless. */
 @media (prefers-color-scheme: light) {
   :root, .themed {
-    --bg: color-mix(in srgb, var(--c-silver) 30%, #fff); --surface: #ffffff; --sidebar-bg: #ffffff;
-    --surface-2: color-mix(in srgb, var(--c-silver) 28%, #fff); --border: color-mix(in srgb, var(--c-silver) 75%, #fff);
-    --ink: var(--c-navy); --muted: var(--c-slate);
-    --brand: var(--c-sky); --brand-ink: var(--c-navy); --accent: var(--c-blue);
-    --accent-soft: color-mix(in srgb, var(--c-sky) 22%, #fff);
-    --amber: #a96a2c; --amber-soft: #f7eddd; --danger: #c0392b; --danger-soft: #fbe9e6; --ok: #1e8e5a; --ok-soft: #e3f4ea;
-    --shadow: 0 1px 2px rgba(25, 51, 90, .06), 0 8px 24px rgba(25, 51, 90, .08);
-    --agent-line: color-mix(in srgb, var(--c-sky) 45%, #fff); --agent-deep: var(--c-blue); --agent-ink: var(--c-navy);
+    --bg: color-mix(in srgb, var(--c-silver) 22%, #fff); --surface: #fff; --sidebar-bg: #fff;
+    --surface-2: color-mix(in srgb, var(--c-silver) 30%, #fff); --surface-3: color-mix(in srgb, var(--c-silver) 50%, #fff);
+    --border: color-mix(in srgb, var(--c-graphite) 14%, var(--c-silver)); --border-subtle: color-mix(in srgb, var(--c-graphite) 6%, var(--c-silver));
+    --ink: var(--c-black); --ink-2: color-mix(in srgb, var(--c-graphite) 85%, var(--c-silver));
+    --muted: color-mix(in srgb, var(--c-graphite) 72%, var(--c-silver)); --disabled: color-mix(in srgb, var(--c-graphite) 40%, var(--c-silver));
+    --brand: var(--c-lime); --brand-ink: var(--c-black); --brand-hover: color-mix(in srgb, var(--c-lime) 88%, #000);
+    --accent: color-mix(in srgb, var(--c-leaf) 62%, #000); --accent-2: var(--c-leaf);
+    --accent-soft: color-mix(in srgb, var(--c-lime) 28%, #fff); --focus: color-mix(in srgb, var(--c-leaf) 62%, #000);
+    --ok: #18834B; --amber: #996017; --danger: #C43F37; --info: #356CB3;
+    --ok-soft: color-mix(in srgb, var(--ok) 10%, #fff); --amber-soft: color-mix(in srgb, var(--amber) 10%, #fff);
+    --danger-soft: color-mix(in srgb, var(--danger) 10%, #fff); --info-soft: color-mix(in srgb, var(--info) 10%, #fff);
+    --shadow: 0 1px 2px rgba(9, 11, 10, .06), 0 8px 24px rgba(9, 11, 10, .08);
+    --agent-line: var(--border); --agent-deep: var(--c-leaf); --agent-ink: var(--c-black);
   }
 }

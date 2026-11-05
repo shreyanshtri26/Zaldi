@@ -4,12 +4,14 @@ import { useAuth } from "../../../shared/context/AuthContext.jsx";
 import { useSiteConfig } from "../../../shared/context/SiteConfigContext.jsx";
 import { FONTS, PALETTE, themeVars } from "../../../shared/theme.js";
 import { useToast } from "../../../shared/context/ToastContext.jsx";
+import Accent from "../../../shared/components/Accent.jsx";
 
 const LOOK = [...PALETTE.map(([k]) => k), "font_family", "font_size", "cards_align", "cards_position", "bar_position", "bar_width", "bar_shape", "photo_button"];
 const FIELDS = [
-  ["brand_name", "Brand name", "Shown in the sidebar and browser tab"],
+  ["brand_name", "Brand name", "Shown in the top bar and browser tab"],
   ["tagline", "Tagline", "Small text under the brand name"],
-  ["welcome_heading", "Welcome heading", "Large text on an empty chat"],
+  ["welcome_greeting", "Welcome greeting", "Small line above the heading"],
+  ["welcome_heading", "Welcome heading", "Large text on an empty chat. Wrap words in *stars* to highlight them"],
   ["welcome_subtitle", "Welcome text", "Short help text under the heading", true],
   ["input_placeholder", "Message box placeholder", "Hint inside the empty message box"],
 ];
@@ -121,7 +123,8 @@ function Preview({ values }) {
   return (
     <div className="welcome themed" style={{ ...themeVars(values), fontSize: `${values.font_size}px`, fontFamily: font || undefined, border: "1px solid var(--border)", borderRadius: 14, padding: 20, background: "var(--bg)", color: "var(--ink)" }}>
       <b style={{ color: "var(--accent)" }}>{values.brand_name}</b>
-      <h2 style={{ fontFamily: font || undefined }}>{values.welcome_heading}</h2>
+      <p className="greeting">{values.welcome_greeting}</p>
+      <h2 style={{ fontFamily: font || undefined }}><Accent text={values.welcome_heading} /></h2>
       <p>{values.welcome_subtitle}</p>
       {values.cards_position === "above" && chips}
       {box}
