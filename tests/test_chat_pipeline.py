@@ -112,3 +112,11 @@ def test_logging_records_each_exchange():
     chat_service.handle_query("show me kurtas", S)
     chat_service.handle_query("show my cart", S)
     assert chat_log_repo.stats()["chats"] == 2
+
+
+def test_fallback_answers_policy_questions_with_policy_text():
+    from zaldi.services.chat_service import _fallback_reply
+
+    product = {"product_name": "Saree", "color": "Red", "brand": "X", "price": 999}
+    assert _fallback_reply([product], [], ["COD is available."], policy_question=True) == "COD is available."
+    assert "Saree" in _fallback_reply([product], [], ["COD is available."], policy_question=False)

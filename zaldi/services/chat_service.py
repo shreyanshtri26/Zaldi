@@ -43,8 +43,10 @@ def _money(n: int) -> str:
     return f"Rs. {n:,}"
 
 
-def _fallback_reply(products: list[dict], dropped: list[str], policies: list[str]) -> str:
-    """Plain-text answer used when the LLM is unavailable."""
+def _fallback_reply(products: list[dict], dropped: list[str], policies: list[str], policy_question: bool = False) -> str:
+    """Plain-text answer used when the LLM is unavailable. A policy question gets the policy text, not random products."""
+    if policies and policy_question:
+        return policies[0][:600]
     if products:
         lines = [f"- {p['product_name']} ({p['color']}, {p['brand']}) - {_money(p['price'])}" for p in products[:5]]
         note = f"\n(No exact match, so I relaxed: {', '.join(dropped)}.)" if dropped else ""
@@ -86,7 +88,7 @@ def _discover(query: str, session_id: str) -> dict:
         text = _compose(query, products, dropped, policies)
     except Exception:
         log.exception("LLM unavailable; using plain reply")
-        text = _fallback_reply(products, dropped, policies)
+        text = _fallback_reply(products, dropped, policies, bool(POLICY_WORDS.search(query)))
     return {"response": text, "products": [{k: p[k] for k in CARD_FIELDS} for p in products],
             "filters": filters.to_dict(), "relaxed": dropped}
 
