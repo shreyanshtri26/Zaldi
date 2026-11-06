@@ -66,12 +66,21 @@ def test_the_store_id_is_validated_and_the_default_cannot_be_removed():
         stores.delete_store("default")
 
 
-def test_deleting_a_store_removes_its_registry_row_and_files():
+def has_data(slug: str) -> bool:
+    """Whether the store's data is still there: its folder on SQLite, its schema on Postgres."""
+    from zaldi.db import pg
+
+    if pg.enabled():
+        with pg._get_pool().connection() as raw:
+            return raw.execute("SELECT 1 FROM pg_namespace WHERE nspname = %s", (pg.schema_name(slug),)).fetchone() is not None
+    return stores.root(slug).exists()
+
+
+def test_deleting_a_store_removes_its_registry_row_and_its_data():
     stores.create_store("gone", "Gone")
-    folder = stores.root("gone")
-    assert folder.exists()
+    assert has_data("gone")
     stores.delete_store("gone")
-    assert not stores.exists("gone") and not folder.exists()
+    assert not stores.exists("gone") and not has_data("gone")
 
 
 def test_the_header_routes_each_request_and_unknown_stores_are_refused(client):

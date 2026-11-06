@@ -5,10 +5,18 @@ from pathlib import Path
 from typing import Iterator
 
 from zaldi import config, stores
+from zaldi.db import pg
 
 SCHEMA_FILE = Path(__file__).with_name("schema.sql")
 
 # Columns added after the first release: (table, column, definition).
+try:  # the exception to catch for "this row breaks a rule" on either database
+    from psycopg import errors as _pg_errors
+
+    IntegrityErrors = (sqlite3.IntegrityError, _pg_errors.IntegrityError)
+except ImportError:  # SQLite-only install
+    IntegrityErrors = (sqlite3.IntegrityError,)
+
 MIGRATIONS = [("products", "image_url", "TEXT"), ("chat_logs", "steps", "TEXT"),
               ("chat_logs", "latency_ms", "INTEGER"), ("chat_logs", "input_tokens", "INTEGER"), ("chat_logs", "output_tokens", "INTEGER"),
               ("chat_logs", "cost_usd", "REAL"), ("chat_logs", "model", "TEXT"), ("chat_logs", "variant", "TEXT"), ("chat_logs", "checked", "TEXT")]
@@ -20,6 +28,10 @@ def connect(readonly: bool = False, store: str | None = None) -> Iterator[sqlite
 
     (sqlite3's own ``with`` never closes the connection, which locks the file on Windows.)
     """
+    if pg.enabled():
+        with pg.connect(store) as pg_conn:
+            yield pg_conn
+        return
     path = stores.db_path(store)
     if readonly:
         conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
@@ -43,6 +55,15 @@ def _migrate(conn: sqlite3.Connection) -> None:
 
 
 def init_db(seed: bool = True) -> None:
+    if pg.enabled():
+        pg.init_schema(stores.slug())
+        if seed:
+            from zaldi.db.seed import seed_if_empty
+
+            with connect() as conn:
+                conn.execute("SELECT pg_advisory_xact_lock(?)", (7_070_707,))  # one worker seeds; the others then find the tables full
+                seed_if_empty(conn)
+        return
     """Create tables, migrate older databases, and seed from ``data/seed`` when empty."""
     from zaldi.db.seed import seed_if_empty
 

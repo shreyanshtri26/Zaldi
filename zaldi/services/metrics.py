@@ -1,4 +1,6 @@
 """Numbers for the admin metrics page: volume, speed, cost, how often the agent and its self-check fire, tool health, feedback."""
+from datetime import datetime, timedelta, timezone
+
 from zaldi.db import connect
 from zaldi.errors import ValidationError
 
@@ -8,17 +10,17 @@ def _percentile(sorted_values: list[int], p: float) -> int:
 
 
 def summary(days: int = 7) -> dict:
-    since = f"-{int(days)} days"
+    since = (datetime.now(timezone.utc) - timedelta(days=int(days))).strftime("%Y-%m-%d %H:%M:%S")  # same text format the tables store
     with connect(readonly=True) as conn:
         rows = [dict(r) for r in conn.execute(
-            "SELECT id, route, latency_ms, input_tokens, output_tokens, cost_usd, model, variant, checked, date(created_at) AS day "
-            "FROM chat_logs WHERE created_at >= datetime('now', ?)", (since,))]
+            "SELECT id, route, latency_ms, input_tokens, output_tokens, cost_usd, model, variant, checked, substr(created_at, 1, 10) AS day "
+            "FROM chat_logs WHERE created_at >= ?", (since,))]
         tools = [dict(r) for r in conn.execute(
-            "SELECT tool, COUNT(*) AS calls, SUM(1 - ok) AS failures, CAST(AVG(ms) AS INTEGER) AS avg_ms FROM audit_log "
-            "WHERE created_at >= datetime('now', ?) GROUP BY tool ORDER BY calls DESC", (since,))]
+            "SELECT tool, COUNT(*) AS calls, CAST(SUM(1 - ok) AS INTEGER) AS failures, CAST(AVG(ms) AS INTEGER) AS avg_ms FROM audit_log "
+            "WHERE created_at >= ? GROUP BY tool ORDER BY calls DESC", (since,))]
         feedback = {r["variant"]: dict(r) for r in conn.execute(
-            "SELECT COALESCE(c.variant, 'A') AS variant, SUM(f.rating = 1) AS up, SUM(f.rating = -1) AS down FROM feedback f "
-            "JOIN chat_logs c ON c.id = f.chat_id WHERE f.created_at >= datetime('now', ?) GROUP BY COALESCE(c.variant, 'A')", (since,))}
+            "SELECT COALESCE(c.variant, 'A') AS variant, CAST(SUM(CASE WHEN f.rating = 1 THEN 1 ELSE 0 END) AS INTEGER) AS up, CAST(SUM(CASE WHEN f.rating = -1 THEN 1 ELSE 0 END) AS INTEGER) AS down FROM feedback f "
+            "JOIN chat_logs c ON c.id = f.chat_id WHERE f.created_at >= ? GROUP BY COALESCE(c.variant, 'A')", (since,))}
     latencies = sorted(r["latency_ms"] for r in rows if r["latency_ms"] is not None)
     agent = [r for r in rows if r["route"] == "agent"]
     per_day: dict[str, dict] = {}

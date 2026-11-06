@@ -1,11 +1,11 @@
 """Agent Studio API (admin only): agents, test runs, execution history and policy-change approvals."""
-import sqlite3
 
 from flask import Blueprint, jsonify, request
 
 from zaldi.api.auth import admin_required
 from zaldi.api.shop import session_id
 from zaldi.db import agent_repo
+from zaldi.db.connection import IntegrityErrors
 from zaldi.errors import ValidationError
 from zaldi.services import agent_service
 
@@ -39,7 +39,7 @@ def _agent_or_404(agent_id: int) -> dict:
 def _save(data: dict, agent_id: int | None = None) -> dict:
     try:
         return agent_repo.save_agent(data, agent_id)
-    except sqlite3.IntegrityError as exc:
+    except IntegrityErrors as exc:
         raise ValidationError("an agent with that name already exists") from exc
 
 

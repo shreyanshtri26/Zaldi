@@ -32,7 +32,7 @@ def _agent(row, stats=None) -> dict:
 
 
 def _stats(conn) -> dict:
-    rows = conn.execute("SELECT agent_id, COUNT(*) n, SUM(status != 'failed') ok, MAX(created_at) last "
+    rows = conn.execute("SELECT agent_id, COUNT(*) n, CAST(SUM(CASE WHEN status != 'failed' THEN 1 ELSE 0 END) AS INTEGER) ok, MAX(created_at) last "
                         "FROM agent_runs GROUP BY agent_id")
     return {r["agent_id"]: r for r in rows}
 

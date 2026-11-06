@@ -15,7 +15,7 @@ CATEGORY_SYNONYMS = {
     "juttis": "Footwear", "jutti": "Footwear", "mojari": "Footwear", "jewelry": "Jewellery", "jewellery": "Jewellery",
     "necklace": "Jewellery", "earrings": "Jewellery", "pants": "Bottomwear", "trousers": "Bottomwear",
     "palazzo": "Bottomwear", "churidar": "Bottomwear", "shirts": "Shirt", "blazer": "Jacket", "coat": "Jacket",
-    "dupattas": "Dupatta", "stole": "Dupatta", "anarkali": "Kurta Set",
+    "dupattas": "Dupatta", "stole": "Dupatta",
 }
 COLOR_SYNONYMS = {"lal": "red", "neela": "blue", "safed": "white", "kala": "black", "hara": "green",
                   "peela": "yellow", "gulabi": "pink", "kesariya": "orange", "sunehri": "gold"}

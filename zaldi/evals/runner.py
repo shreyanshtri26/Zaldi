@@ -19,7 +19,8 @@ RESULTS_DIR = ROOT / "evals" / "results"
 def offline_environment():
     """Point the app at a temporary seeded database with offline embeddings. Returns the previous settings to restore."""
     tmp = Path(tempfile.mkdtemp(prefix="zaldi-evals-"))
-    saved = {k: getattr(config, k) for k in ("DB_PATH", "PRODUCT_INDEX_DIR", "POLICY_INDEX_DIR", "EMBEDDING_PROVIDER")}
+    saved = {k: getattr(config, k) for k in ("DB_PATH", "PRODUCT_INDEX_DIR", "POLICY_INDEX_DIR", "EMBEDDING_PROVIDER", "DATABASE_URL")}
+    config.DATABASE_URL = ""  # the offline suites always run on a throwaway SQLite copy
     config.DB_PATH, config.PRODUCT_INDEX_DIR, config.POLICY_INDEX_DIR = tmp / "eval.db", tmp / "product_index", tmp / "policy_index"
     config.EMBEDDING_PROVIDER = "local"
     from zaldi.db import init_db

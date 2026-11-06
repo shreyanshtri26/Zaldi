@@ -1,6 +1,7 @@
 """Hybrid product search: hard SQL filters + vector similarity (style) + lexical match (exact words), fused with RRF."""
 import re
 from dataclasses import replace
+from difflib import get_close_matches
 
 from zaldi.db import connect
 from zaldi.search.extract import Filters
@@ -25,14 +26,14 @@ def _where(f: Filters) -> tuple[str, list]:
         clauses.append("price <= ?")
         args.append(f.max_price)
     if f.category:
-        clauses.append("category = ? COLLATE NOCASE")
+        clauses.append("LOWER(category) = LOWER(?)")
         args.append(f.category)
     if f.brand:
-        clauses.append("brand = ? COLLATE NOCASE")
+        clauses.append("LOWER(brand) = LOWER(?)")
         args.append(f.brand)
     if f.exclude_brands:
-        clauses.append(f"(brand IS NULL OR brand COLLATE NOCASE NOT IN ({','.join('?' * len(f.exclude_brands))}))")
-        args += f.exclude_brands
+        clauses.append(f"(brand IS NULL OR LOWER(brand) NOT IN ({','.join('?' * len(f.exclude_brands))}))")
+        args += [b.lower() for b in f.exclude_brands]
     if f.genders:
         clauses.append(f"gender IN ({','.join('?' * len(f.genders))})")
         args += f.genders
@@ -59,12 +60,26 @@ def _lexical_score(row: dict, terms: list[str]) -> float:
     score = 0.0
     for field, weight in weighted:
         words = set(re.findall(r"\w+", (row.get(field) or "").lower()))
-        score += weight * sum(1 for t in terms if t in words or (len(t) > 3 and t.rstrip("s") in words))
+        score += weight * sum(1 for t in terms if t in words or (len(t) > 3 and (t.rstrip("s") in words or get_close_matches(t, words, 1, 0.8))))  # typos: "anarkli" ~ "anarkali"
     return score
+
+
+def _named(query: str) -> list[dict]:
+    """In-stock products whose whole name appears in the query."""
+    text = " " + " ".join(re.findall(r"\w+", query.lower())) + " "
+    with connect(readonly=True) as conn:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM products WHERE stock_quantity > 0 ORDER BY id")]
+    return [r for r in rows if " " + " ".join(re.findall(r"\w+", r["product_name"].lower())) + " " in text]
 
 
 def search(query: str, filters: Filters, limit: int = 6) -> tuple[list[dict], list[str]]:
     """Best ``limit`` products for ``query`` under ``filters``, plus the names of any filters dropped to find matches."""
+    named = _named(query)  # the shopper typed a product's name: that product first, whatever category words in it matched
+    rest, dropped = _search(query, filters, limit)
+    return (named + [r for r in rest if r["id"] not in {n["id"] for n in named}])[:limit], dropped
+
+
+def _search(query: str, filters: Filters, limit: int) -> tuple[list[dict], list[str]]:
     dropped: list[str] = []
     rows = _candidates(filters)
     for name in RELAX_ORDER:

@@ -114,7 +114,9 @@ export default function ProductsView({ initialQuery = "" }) {
           <thead><tr><th>Product</th><th>Category</th><th className="num">Price</th><th>Stock</th><th /></tr></thead>
           <tbody>{shown.map((r) => (
             <tr key={r.id}>
-              <td><b>{r.product_name}</b><div className="sub">{r.product_code} · {r.brand || "-"}</div></td>
+              <td><div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {r.image_url ? <img src={r.image_url} alt="" loading="lazy" style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", flex: "none" }} /> : null}
+                <div><b>{r.product_name}</b><div className="sub">{r.product_code} · {r.brand || "-"}</div></div></div></td>
               <td>{r.category}</td><td className="num">{inr(r.price)}</td><td><StockBadge quantity={r.stock_quantity} /></td>
               <td className="act">{actions(r)}</td>
             </tr>))}</tbody>

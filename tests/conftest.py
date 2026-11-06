@@ -1,3 +1,6 @@
+import os
+import uuid
+
 import pytest
 
 from tests.helpers import ADMIN_TOKEN
@@ -14,12 +17,25 @@ def temp_db(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "ROUTER_CACHE_DIR", tmp_path / "router_cache")
     monkeypatch.setattr(config, "UPLOAD_DIR", tmp_path / "uploads")
     monkeypatch.setattr(config, "ADMIN_TOKEN", ADMIN_TOKEN)
+    # SQLite by default. With ZALDI_TEST_DATABASE_URL set, the same tests run on Postgres, each in its own throwaway schema.
+    test_pg = os.getenv("ZALDI_TEST_DATABASE_URL", "")
+    monkeypatch.setattr(config, "DATABASE_URL", test_pg)
+    schema = f"t_{uuid.uuid4().hex[:10]}"
+    monkeypatch.setattr(config, "PG_SCHEMA", schema)
     monkeypatch.setattr(config, "RATE_LIMIT_CHAT", 0)  # limits are tested explicitly
     monkeypatch.setattr(config, "RATE_LIMIT_LOGIN", 0)
     from zaldi.connectors.local import _policies
 
     _policies.cache_clear()  # cached answers belong to the previous test's database
-    return tmp_path
+    yield tmp_path
+    if test_pg:
+        from zaldi.db import pg
+
+        with pg._get_pool().connection() as raw:  # the default store's schema and every store schema made from it
+            names = [r["nspname"] for r in raw.execute("SELECT nspname FROM pg_namespace WHERE nspname LIKE %s", (schema + "%",)).fetchall()]
+            for name in names:
+                raw.execute(f'DROP SCHEMA IF EXISTS "{name}" CASCADE')
+            raw.commit()
 
 
 @pytest.fixture

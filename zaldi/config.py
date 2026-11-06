@@ -41,6 +41,9 @@ WOOCOMMERCE_SECRET = os.getenv("WOOCOMMERCE_SECRET", "")
 SHOPIFY_DOMAIN = os.getenv("SHOPIFY_DOMAIN", "")  # your-store.myshopify.com
 SHOPIFY_STOREFRONT_TOKEN = os.getenv("SHOPIFY_STOREFRONT_TOKEN", "")  # public, read-only Storefront API token
 SHOPIFY_API_VERSION = os.getenv("SHOPIFY_API_VERSION", "2025-07")
+DATABASE_URL = os.getenv("DATABASE_URL", "")  # postgresql://... (Neon). Empty = SQLite files under DATA_DIR
+PG_SCHEMA = os.getenv("PG_SCHEMA", "public")  # Postgres schema of the default store; other stores get <schema>_s_<id>
+PG_POOL_SIZE = os.getenv("PG_POOL_SIZE", "10")
 ALLOW_SIGNUP = os.getenv("ALLOW_SIGNUP") == "1"  # let anyone create their own store and owner account (off by default)
 LLM_MODEL_CHEAP = os.getenv("LLM_MODEL_CHEAP", "")  # cheaper model for simple messages; empty = always use LLM_MODEL
 LLM_RETRIES = int(os.getenv("LLM_RETRIES", "2"))  # extra attempts on a rate limit or outage, with exponential backoff

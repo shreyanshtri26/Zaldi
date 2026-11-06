@@ -1,12 +1,18 @@
 from zaldi.db import content_repo, init_db
 from zaldi.search import index
+from zaldi.db import connect, pg
 from zaldi.search.ingest import ingest
 
 
 def test_ingest_indexes_every_product(temp_db):
     n = ingest()
     assert n == len(content_repo.list_rows("products")) > 20
-    assert (temp_db / "product_index" / "index.faiss").exists()
+    if pg.enabled():  # on Postgres the vectors live in a table, with the index's fingerprint beside them
+        with connect() as conn:
+            assert conn.execute("SELECT COUNT(*) FROM vectors WHERE kind = 'products'").fetchone()[0] == n
+            assert conn.execute("SELECT fingerprint FROM vector_meta WHERE kind = 'products'").fetchone()
+    else:
+        assert (temp_db / "product_index" / "index.faiss").exists()
 
 
 def test_vector_search_finds_semantically_close_product(temp_db):

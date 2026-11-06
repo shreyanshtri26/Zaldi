@@ -1,10 +1,10 @@
 """CRUD for the editable CMS content: products, policies and quick actions."""
 import shutil
-import sqlite3
 from dataclasses import dataclass, field
 
 from zaldi import stores
-from zaldi.db.connection import connect
+from zaldi.db import pg
+from zaldi.db.connection import IntegrityErrors, connect
 from zaldi.errors import ValidationError
 
 Row = dict
@@ -90,7 +90,7 @@ def list_rows(table: str, q: str = "", category: str = "", only_active: bool = F
         where.append("(" + " OR ".join(f"{c} LIKE ?" for c in spec.search) + ")")
         args += [f"%{q}%"] * len(spec.search)
     if category and table == "products":
-        where.append("category = ? COLLATE NOCASE")
+        where.append("LOWER(category) = LOWER(?)")
         args.append(category)
     if only_active and "active" in spec.fields:
         where.append("active = 1")
@@ -112,7 +112,7 @@ def create_row(table: str, data: dict) -> Row:
         try:
             cursor = conn.execute(
                 f"INSERT INTO {table} ({','.join(row)}) VALUES ({','.join('?' * len(row))})", list(row.values()))
-        except sqlite3.IntegrityError as exc:
+        except IntegrityErrors as exc:
             raise ValidationError(str(exc)) from exc
     _after_write(table)
     return get_row(table, cursor.lastrowid)
@@ -128,7 +128,7 @@ def update_row(table: str, row_id: int, data: dict) -> Row | None:
             conn.execute(
                 f"UPDATE {table} SET {','.join(k + '=?' for k in row)}, updated_at=CURRENT_TIMESTAMP WHERE id=?",
                 [*row.values(), row_id])
-        except sqlite3.IntegrityError as exc:
+        except IntegrityErrors as exc:
             raise ValidationError(str(exc)) from exc
     _after_write(table)
     return get_row(table, row_id)
@@ -146,6 +146,10 @@ def delete_row(table: str, row_id: int) -> bool:
 def _after_write(table: str) -> None:
     """Policy text feeds the FAISS index: drop it so the next search rebuilds from the database."""
     if table == "policies":
+        if pg.enabled():
+            from zaldi.search.pgvec import invalidate
+
+            invalidate("policies")
         shutil.rmtree(stores.policy_index_dir(), ignore_errors=True)
         from zaldi.connectors.local import _policies
 

@@ -125,4 +125,9 @@ def delete_store(store: str) -> None:
         raise ValidationError("unknown store")
     with _registry() as conn:
         conn.execute("DELETE FROM stores WHERE slug = ?", (store,))
-    shutil.rmtree(root(store), ignore_errors=True)
+    from zaldi.db import pg
+
+    if pg.enabled():
+        pg.drop_schema(store)
+    else:
+        shutil.rmtree(root(store), ignore_errors=True)

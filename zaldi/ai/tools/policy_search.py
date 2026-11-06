@@ -10,7 +10,10 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+import hashlib
+
 from zaldi import stores
+from zaldi.db import pg
 from zaldi.ai.models import embedding_id, get_embeddings
 from zaldi.db import content_repo
 
@@ -20,8 +23,27 @@ FETCH_FACTOR = 4  # over-fetch from the vector index, then keep the best k after
 GENERIC = {"what", "your", "policy", "policie", "with", "about", "does", "have", "this", "that", "from", "will", "when"}
 
 
+def _chunks() -> list[Document]:
+    splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=120)
+    return [Document(page_content=f"{p['title']}\n{part}", metadata={"title": p["title"]})
+            for p in content_repo.list_rows("policies") for part in splitter.split_text(p["content"])]
+
+
+def _pg_vectorstore():
+    """The policy index in Postgres; rebuilt when a policy or the embedding model changes (its fingerprint says so)."""
+    from zaldi.search import pgvec
+
+    chunks = _chunks()
+    fp = hashlib.sha256((embedding_id() + "\n".join(d.page_content for d in chunks)).encode()).hexdigest()
+    if pgvec.fingerprint("policies") == fp:
+        return pgvec.PgVectorStore("policies", get_embeddings())
+    return pgvec.PgVectorStore.build("policies", chunks, get_embeddings(), fp)
+
+
 def get_vectorstore() -> FAISS:
     """Load the FAISS index, or build it from the policies table (it is deleted whenever policies change)."""
+    if pg.enabled():
+        return _pg_vectorstore()
     folder = stores.policy_index_dir()
     index_dir = str(folder)
     marker = folder / "embedding.id"

@@ -9,7 +9,8 @@ import json
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
-from zaldi import config, stores
+from zaldi import stores
+from zaldi.db import pg
 from zaldi.ai.models import embedding_id, get_embeddings
 from zaldi.db import content_repo
 
@@ -32,9 +33,13 @@ def _fingerprint(docs: list[Document]) -> str:
 def build_index(docs: list[Document] | None = None) -> tuple[FAISS | None, int]:
     """Embed the catalogue and persist it. Returns (store, product count); store is None for an empty catalogue."""
     docs = product_documents() if docs is None else docs
-    index_dir = stores.product_index_dir()
     if not docs:
         return None, 0
+    if pg.enabled():
+        from zaldi.search.pgvec import PgVectorStore
+
+        return PgVectorStore.build("products", docs, get_embeddings(), _fingerprint(docs)), len(docs)
+    index_dir = stores.product_index_dir()
     store = FAISS.from_documents(docs, get_embeddings())
     index_dir.mkdir(parents=True, exist_ok=True)
     store.save_local(str(index_dir))
@@ -46,6 +51,12 @@ def get_index() -> FAISS | None:
     docs = product_documents()
     if not docs:
         return None
+    if pg.enabled():
+        from zaldi.search import pgvec
+
+        if pgvec.fingerprint("products") == _fingerprint(docs):
+            return pgvec.PgVectorStore("products", get_embeddings())
+        return build_index(docs)[0]
     meta = stores.product_index_dir() / "fingerprint.json"
     try:
         fresh = json.loads(meta.read_text())["fingerprint"] == _fingerprint(docs)
