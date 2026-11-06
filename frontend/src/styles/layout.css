@@ -53,3 +53,5 @@ details[open] > .nav-btn { background: var(--surface-3); color: var(--ink); }
 /* New chat sits on the left of the bar, next to the open conversation's title */
 .topbar.raised .nav-btn.primary { margin-left: 6px; }
 .topbar.raised .chat-title { min-width: 0; }
+
+.topbar.raised .chat-title { animation: fade 240ms ease both; }

@@ -13,6 +13,8 @@ const FIELDS = [
   ["welcome_greeting", "Welcome greeting", "Small line above the heading"],
   ["welcome_heading", "Welcome heading", "Large text on an empty chat. Wrap words in *stars* to highlight them"],
   ["welcome_subtitle", "Welcome text", "Short help text under the heading", true],
+  ["home_categories_max", "Categories on the home page", "How many category chips show before the All button (1 to 12)"],
+  ["home_categories_hidden", "Hidden categories", "Names to leave off the home page, separated by commas"],
   ["input_placeholder", "Message box placeholder", "Hint inside the empty message box"],
 ];
 

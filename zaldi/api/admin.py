@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 from zaldi.api.auth import admin_required
 from zaldi.api.ratelimit import rate_limited
 from zaldi.db import chat_log_repo
-from zaldi.services import prompt_service, site_config
+from zaldi.services import prompt_service, site_config, store_settings
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 RECENT_CHATS = 20
@@ -34,6 +34,30 @@ def get_settings():
 def put_settings():
     changes = request.get_json(silent=True) or {}
     return jsonify(settings=site_config.update_settings(changes), defaults=site_config.defaults())
+
+
+@bp.get("/store")
+@admin_required
+def get_store():
+    return jsonify(store_settings.public_view())
+
+
+@bp.put("/store")
+@admin_required
+def put_store():
+    return jsonify(store_settings.update(request.get_json(silent=True) or {}))
+
+
+@bp.delete("/store")
+@admin_required
+def delete_store():
+    return jsonify(store_settings.reset())
+
+
+@bp.post("/store/test")
+@admin_required
+def test_store():
+    return jsonify(store_settings.test_connection())
 
 
 @bp.get("/prompts")

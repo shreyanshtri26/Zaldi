@@ -23,8 +23,8 @@ async function request(path, { method = "GET", body, token, form } = {}) {
   return data;
 }
 
-export function sendChat(message, image) {
-  if (!image) return request("/chat", { method: "POST", body: { message } });
+export function sendChat(message, image, history) {
+  if (!image) return request("/chat", { method: "POST", body: { message, history } });
   const form = new FormData();
   form.append("message", message);
   form.append("image", image);
@@ -50,9 +50,14 @@ export const updateItem = (table, id, body, token) => request(`/${table}/${id}`,
 export const deleteItem = (table, id, token) => request(`/${table}/${id}`, { method: "DELETE", token });
 
 // --- CMS-managed content ---
+export const getCategories = () => request("/categories");
 export const getSiteConfig = () => request("/site-config");
 export const getAdminSettings = (token) => request("/admin/settings", { token });
 export const saveAdminSettings = (settings, token) => request("/admin/settings", { method: "PUT", body: settings, token });
+export const getStore = (token) => request("/admin/store", { token });
+export const saveStore = (changes, token) => request("/admin/store", { method: "PUT", body: changes, token });
+export const resetStore = (token) => request("/admin/store", { method: "DELETE", token });
+export const testStore = (token) => request("/admin/store/test", { method: "POST", token });
 export const getPrompts = (token) => request("/admin/prompts", { token });
 export const savePrompt = (name, content, token) => request(`/admin/prompts/${name}`, { method: "PUT", body: { content }, token });
 export const resetPrompt = (name, token) => request(`/admin/prompts/${name}`, { method: "DELETE", token });

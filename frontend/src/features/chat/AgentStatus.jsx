@@ -1,5 +1,5 @@
 import Icon from "../../shared/components/Icon.jsx";
-import { AGENT_STEPS, routeLabel } from "../../shared/utils/agentSteps.js";
+import { routeLabel, stepsFor } from "../../shared/utils/agentSteps.js";
 
 // Compact waiting box: a title and blurred lines that "type" themselves. The API has no streaming, so there is no real
 // progress to show; a short note appears only if the reply is slow.
@@ -12,8 +12,8 @@ export function AgentWorking() {
 }
 
 // Tool-execution card above a reply: what ran, how long it took, and the steps taken (collapsible).
-export function AgentCompleted({ route, ms }) {
-  const steps = AGENT_STEPS[route];
+export function AgentCompleted({ route, ms, steps: ran }) {
+  const steps = stepsFor(route, ran);
   if (!steps) return null;
   return (
     <details className="tool-card">

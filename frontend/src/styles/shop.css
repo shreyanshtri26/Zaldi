@@ -48,3 +48,16 @@
 
 .p-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .p-thumb .p-num { z-index: 1; }
+
+/* product images: taller thumbnails; a lone result gets a large image; plain product shots (catalogue stores) are shown whole */
+.p-thumb { height: 150px; }
+.p-grid:has(> .p-card:only-child) { grid-template-columns: minmax(220px, 300px); }
+.p-grid:has(> .p-card:only-child) .p-thumb { height: 220px; }
+.p-thumb.contain { background: #fff; }
+.p-thumb.contain img { object-fit: contain; padding: 10px; }
+.p-thumb img { background: var(--surface-2); transition: transform 300ms ease; } .p-card:hover .p-thumb img { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) { .p-thumb img { transition: none; } .p-card:hover .p-thumb img { transform: none; } }
+
+/* the - 1 + stepper on a product card in a reply: same control as the cart panel, sized to sit where the Add button was */
+.p-foot .qty { height: 32px; } .p-foot .qty button { width: 32px; height: 30px; color: var(--ink); cursor: pointer; } .p-foot .qty button:hover:not(:disabled) { background: var(--surface-2); }
+.p-foot .qty button:disabled { color: var(--disabled); cursor: default; } .p-foot .qty span { min-width: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }

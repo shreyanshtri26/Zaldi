@@ -6,10 +6,12 @@ import Orb from "../../shared/components/Orb.jsx";
 import { useSiteConfig } from "../../shared/context/SiteConfigContext.jsx";
 import useLenis from "../../shared/hooks/useLenis.js";
 import { AgentCompleted, AgentWorking } from "./AgentStatus.jsx";
+import CategoryChips, { norm } from "./CategoryChips.jsx";
 import ProductCards from "./ProductCards.jsx";
 import Typed from "./Typed.jsx";
+import useCategories from "./useCategories.js";
 
-function Reply({ message, onAdd, addingId, onOpenCart }) {
+function Reply({ message, onAdd, onSetQty, cartQty, addingId, onOpenCart, onSend, showReplies }) {
   const [copied, setCopied] = useState(false);
   // A reply that has just arrived types itself in; older messages (history, reload) appear at once.
   const [animate] = useState(() => !message.error && Boolean(message.at) && Date.now() - message.at < 4000);
@@ -21,11 +23,16 @@ function Reply({ message, onAdd, addingId, onOpenCart }) {
     <div className="turn">
       <BotAvatar />
       <div style={{ flex: 1, minWidth: 0 }}>
-        {!message.error && <AgentCompleted route={message.route} ms={message.ms} />}
+        {!message.error && <AgentCompleted route={message.route} ms={message.ms} steps={message.steps} />}
         <div className={`reply${message.error ? " error" : ""}`}><Typed text={message.text} animate={animate} onDone={() => setDone(true)} /></div>
-        {done && <ProductCards products={message.products} onAdd={onAdd} busyId={addingId} />}
+        {done && <ProductCards products={message.products} onAdd={onAdd} onSetQty={onSetQty} cartQty={cartQty} busyId={addingId} />}
         {done && message.route === "cart" && message.cartCount > 0 && <button className="btn ghost sm cta" onClick={() => onOpenCart("cart")}><Icon name="cart" size={15} /> View cart</button>}
         {done && message.action === "collect_address" && <button className="btn sm cta" onClick={() => onOpenCart("address")}>Enter delivery details</button>}
+        {done && showReplies && message.quickReplies?.length > 0 && (
+          <div className="chips left quick" role="group" aria-label="Quick replies">
+            {message.quickReplies.map((q) => <button key={q} className="chip" onClick={() => onSend(q)}>{q}</button>)}
+          </div>
+        )}
         {done && !message.error && (
           <div className="reply-actions">
             <button className="icon-btn" onClick={copy} aria-label="Copy reply" title={copied ? "Copied" : "Copy"}><Icon name="copy" size={16} /></button>
@@ -79,8 +86,9 @@ function Composer({ busy, onSend, onListening, placeholder, boxRef, photo = true
 }
 
 // Empty state: composer sits in the middle of the canvas with suggestion chips. Once a chat starts it docks to the bottom.
-export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onOpenCart }) {
+export default function ChatPanel({ messages, busy, onSend, onAdd, onSetQty, cartQty, addingId, onOpenCart }) {
   const { settings, quickActions } = useSiteConfig();
+  const { categories, shown } = useCategories();
   const box = useRef(null);
   const wrapper = useRef(null);
   const end = useRef(null);
@@ -120,9 +128,14 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onO
       {pos !== "top" && <div className="hint">Enter to send · Shift+Enter for a new line</div>}
     </div>
   );
+  // Category chips come from the connected store; the admin's quick actions become a separate "Help" row (minus any that repeat a category).
+  const known = new Set(categories.map((c) => norm(c.name)));
+  const help = quickActions.filter((q) => !known.has(norm(q.title)));
+  // One line: "Shop by category" sits beside the help chips (Payment, Returns); the category chips open on their own row below.
   const chips = (
-    <div className={`chips ${settings.cards_align} ${settings.cards_position}`}>
-      {quickActions.map(({ id, icon, title, message }) => (
+    <div className={`chips chip-line ${settings.cards_align} ${settings.cards_position}`}>
+      <CategoryChips categories={categories} shown={shown} align={settings.cards_align} onPick={(name) => onSend(`Show me ${name}`)} />
+      {help.map(({ id, icon, title, message }) => (
         <button key={id} className="chip" onClick={() => onSend(message)}><Icon name={icon} size={15} />{title}</button>
       ))}
     </div>
@@ -148,7 +161,7 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onO
               {messages.map((m, i) =>
                 m.role === "user"
                   ? <div key={i} className="turn user"><div className="bubble">{m.text}</div></div>
-                  : <Reply key={i} message={m} onAdd={onAdd} addingId={addingId} onOpenCart={onOpenCart} />)}
+                  : <Reply key={i} message={m} onAdd={onAdd} onSetQty={onSetQty} cartQty={cartQty} addingId={addingId} onOpenCart={onOpenCart} onSend={onSend} showReplies={i === messages.length - 1 && !busy} />)}
               {busy && <div className="turn"><div className="av-col"><BotAvatar active /><span>{settings.brand_name || "Zaldi"}</span></div><AgentWorking /></div>}
               <div ref={end} />
             </div>

@@ -1,9 +1,14 @@
 """GET /api/site-config: public storefront text and quick-action cards."""
 from flask import Blueprint, jsonify
 
-from zaldi.services import site_config
+from zaldi.services import categories, site_config
 
 bp = Blueprint("site", __name__)
+
+
+@bp.get("/categories")
+def get_categories():
+    return jsonify(categories.home_categories())
 
 
 @bp.get("/site-config")

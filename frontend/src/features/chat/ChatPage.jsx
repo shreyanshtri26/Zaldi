@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { addToCart, getCart, sendChat } from "../../api/client.js";
+import { addToCart, getCart, sendChat, setCartQuantity } from "../../api/client.js";
 import AppShell from "../../shared/components/AppShell.jsx";
 import Icon from "../../shared/components/Icon.jsx";
+import { useAuth } from "../../shared/context/AuthContext.jsx";
 import { useSiteConfig } from "../../shared/context/SiteConfigContext.jsx";
 import { ToastProvider, useToast } from "../../shared/context/ToastContext.jsx";
 import CartPanel from "./CartPanel.jsx";
@@ -39,6 +40,7 @@ function ChatScreen() {
   const [adding, setAdding] = useState(null);
   const toast = useToast();
   const { settings } = useSiteConfig();
+  const { token } = useAuth(); // the admin link is shown only while an admin is signed in
 
   useEffect(() => { getCart().then(setCart).catch(() => {}); }, []);
 
@@ -57,10 +59,12 @@ function ChatScreen() {
     const startedAt = Date.now();
     setBusy(true);
     try {
-      const r = await sendChat(text, image);
+      // the last few turns, so follow-ups like "add the cheaper one" have something to refer to
+      const history = (active?.messages || []).filter((m) => m.text && !m.error).slice(-6).map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.text }));
+      const r = await sendChat(text, image, history);
       if (r.cart) setCart(r.cart);
       append(chatId, {
-        role: "bot", text: r.response, route: r.type, ms: Date.now() - startedAt, at: Date.now(),
+        role: "bot", text: r.response, route: r.type, ms: Date.now() - startedAt, at: Date.now(), steps: r.steps, quickReplies: r.quick_replies,
         products: r.products, relaxed: r.relaxed, action: r.action, cartCount: r.cart?.item_count,
       });
       if (r.action === "collect_address") setPanel("address");
@@ -78,11 +82,19 @@ function ChatScreen() {
     finally { setAdding(null); }
   }
 
-  const started = (active?.messages?.length || 0) > 0; // the welcome page already says "Zaldi", so the bar adds the name only once a chat is under way
   // Left: start a conversation (and which one is open). Right: tools for this chat, then the shop.
+  // Quantity of each product already in the cart, so cards in replies can show - 1 + instead of Add.
+  const cartQty = Object.fromEntries(cart.items.map((i) => [i.id, i.quantity]));
+  async function setQty(product, quantity) {
+    setAdding(product.id);
+    try { setCart(await setCartQuantity(product.id, quantity)); }
+    catch (e) { toast(e.message, "bad"); }
+    finally { setAdding(null); }
+  }
+
   const nav = (
     <>
-      {started && <span className="chat-title">{settings.brand_name}</span>}
+      {busy && <span className="chat-title">{settings.brand_name}</span>}
       <button className="nav-btn primary" onClick={newChat} aria-label="New chat" data-tip="New chat"><span className="plus"><Icon name="plus" size={14} /></span><span className="nav-label">New chat</span></button>
     </>
   );
@@ -96,14 +108,14 @@ function ChatScreen() {
         <button className="nav-btn cart-btn" aria-label={`Cart, ${cart.item_count} items`} data-tip="Cart" onClick={() => setPanel("cart")}>
           <Icon name="cart" size={20} />{cart.item_count > 0 && <b key={cart.item_count} className="badge pop">{cart.item_count}</b>}
         </button>
-        <a className="nav-btn" href="/admin" aria-label="Apps and admin panel" data-tip="Apps"><Icon name="grid" size={20} /></a>
+        {token && <a className="nav-btn" href="/admin" aria-label="Admin panel" data-tip="Admin"><Icon name="grid" size={20} /></a>}
       </div>
     </>
   );
 
   return (
     <AppShell nav={nav} actions={actions} raised>
-      <ChatPanel messages={active?.messages || []} busy={busy} onSend={send} onAdd={add} addingId={adding} onOpenCart={setPanel} />
+      <ChatPanel messages={active?.messages || []} busy={busy} onSend={send} onAdd={add} onSetQty={setQty} cartQty={cartQty} addingId={adding} onOpenCart={setPanel} />
       {panel && <CartPanel key={panel} cart={cart} onCart={setCart} startAt={panel} onClose={() => setPanel(null)} />}
     </AppShell>
   );

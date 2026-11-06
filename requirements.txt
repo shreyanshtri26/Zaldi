@@ -11,3 +11,4 @@ langchain-google-genai>=4.0
 langchain-groq>=0.2
 playwright>=1.47
 pytest>=8.2
+requests>=2.31

@@ -8,10 +8,12 @@ the delivery address is never taken in chat (the UI collects it in a separate fo
 """
 import logging
 import re
+from datetime import date
 from functools import lru_cache
 
+from zaldi import config
 from zaldi.ai import guardrails
-from zaldi.ai.models import get_llm
+from zaldi.ai.models import get_fallback_llm, get_llm
 from zaldi.ai.prompts import get_prompt
 from zaldi.ai.router import Route, SemanticRouter
 from zaldi.db import chat_log_repo
@@ -72,8 +74,28 @@ def _compose(query: str, products: list[dict], dropped: list[str], policies: lis
     return _as_text(reply.content)
 
 
+VAGUE = re.compile(r"\b(something|anything|suggest|recommend|gift|help me (find|choose|pick|shop)|what should i|show me (some|a few) options|i (need|want) (a |an |some )?(outfit|dress|clothes))\b", re.I)
+
+
+def _ask_what_they_want(query: str, filters) -> dict | None:
+    """A request with no category, colour, size or budget gives search nothing to work with: ask, with tappable categories."""
+    if not filters.is_empty() or POLICY_WORDS.search(query) or not VAGUE.search(query):
+        return None
+    from zaldi.db import connect
+
+    with connect() as conn:
+        categories = [r["category"] for r in conn.execute("SELECT category FROM products GROUP BY category ORDER BY COUNT(*) DESC LIMIT 4")]
+    if not categories:
+        return None
+    return {"response": "Happy to help you choose. What are you shopping for? You can also tell me your budget, colour or occasion.",
+            "quick_replies": categories, "products": []}
+
+
 def _discover(query: str, session_id: str) -> dict:
     asked = extract_filters(query)
+    vague = _ask_what_they_want(query, asked)
+    if vague:
+        return vague
     policy_only = bool(POLICY_WORDS.search(query)) and asked.is_empty()  # "Is COD available?" names no product
     filters = merge_defaults(asked, preferences.preference_filters(session_id))
     products, dropped = ([], []) if policy_only else search(query, filters)
@@ -109,18 +131,98 @@ def _chitchat(query: str) -> dict:
         return {"response": SMALL_TALK_FALLBACK}
 
 
+DETAILS_PROMPT = ("To deliver it I need your full name, mobile number, address, city, state and PIN code, and whether you want "
+                  "standard or express delivery. For your safety I don't take these in chat: please fill in the secure delivery form that has opened.")
+
+
 def _checkout(session_id: str) -> dict:
     c = cart.get_cart(session_id)
     if not c["items"]:
         return {"response": "Your cart is empty. Tell me what you'd like and I'll add it first.", "cart": c}
-    return {"response": "Happy to set that up.\n" + describe_cart(c) +
-            "\nFor your safety I don't take addresses in chat: please fill in the secure delivery form below. "
-            "I'll prepare the order and wait for your confirmation before anything is placed.",
+    return {"response": "Happy to set that up.\n" + describe_cart(c) + "\n" + DETAILS_PROMPT +
+            " I'll prepare the order and wait for your confirmation before anything is placed.",
             "cart": c, "action": "collect_address"}
 
 
-def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, str] | None = None) -> dict:
-    """``image`` is ``(bytes, mime_type)`` for an uploaded photo."""
+# Messages that need more than one step (compare, then act). Everything else stays on the fast deterministic path.
+MULTI_STEP = re.compile(r"\b(compare|comparison|cheaper|cheapest|costlier|costliest|versus|vs|difference between|which (one|is)|"
+                        r"better|best (one|option)|and (then )?(add|buy|order)|then (add|buy|order)|also add|recommend|suggest)\b", re.I)
+
+
+MAX_HISTORY = 6
+_budget = {"day": None, "used": 0}
+
+
+def _spend_agent_run() -> bool:
+    """Count one agent run against today's cap (``AGENT_DAILY_RUNS``, per server process). False once the cap is reached."""
+    today = date.today()
+    if _budget["day"] != today:
+        _budget.update(day=today, used=0)
+    if config.AGENT_DAILY_RUNS and _budget["used"] >= config.AGENT_DAILY_RUNS:
+        return False
+    _budget["used"] += 1
+    return True
+
+
+def _clean_history(history) -> list[tuple[str, str]]:
+    """The last few turns the browser sent, as (role, text). Untrusted: shape-checked, PII-redacted, injection-checked."""
+    clean = []
+    for turn in (history if isinstance(history, list) else [])[-MAX_HISTORY:]:
+        if not isinstance(turn, dict) or turn.get("role") not in ("user", "assistant") or not isinstance(turn.get("text"), str):
+            continue
+        try:
+            text, _ = guardrails.check_input(turn["text"][:400])
+        except guardrails.Blocked:
+            continue
+        clean.append((turn["role"], text))
+    return clean
+
+
+def _price(card: dict) -> str:
+    currency = card.get("currency", "INR")
+    return f"Rs. {int(card['price']):,}" if currency == "INR" else f"${card['price']:,.2f}" if currency == "USD" else f"{card['price']} {currency}"
+
+
+def _connected_store_fallback(text: str, session_id: str) -> dict:
+    """The model is unavailable and the shopper is on a connected store: answer from that store's own search, as plain text.
+    (The fixed pipeline would answer from this app's own catalogue, which is the wrong store.)"""
+    from zaldi.connectors import get_connector
+
+    products = get_connector().search_products(session_id, text)["products"]
+    if not products:
+        return {"response": "I couldn't find a match for that. Try a category name or a different word.", "products": [], "steps": []}
+    lines = [f"- {p['product_name']} - {_price(p)}" for p in products[:5]]
+    return {"response": "Here is what I found:\n" + "\n".join(lines), "products": products, "steps": []}
+
+
+def _try_agent(text: str, session_id: str, history: list[tuple[str, str]] | None = None) -> dict | None:
+    """Run the tool-using agent; ``None`` means "use the normal pipeline" (disabled, model down, or an empty answer)."""
+    if not config.AGENT_ENABLED:
+        return None
+    if not _spend_agent_run():
+        return None
+    try:
+        from zaldi.agent.loop import run_agent
+        from zaldi.connectors import get_connector
+
+        failure = None
+        for llm in (get_llm(), get_fallback_llm()):  # the second model only runs if the first one fails
+            if llm is None:
+                continue
+            try:
+                result = run_agent(text, session_id, get_connector(), llm, history=history)
+                return result if result["response"] else None
+            except Exception as exc:
+                failure = exc
+                log.warning("agent model failed (%s); trying the fallback model if there is one", type(exc).__name__)
+        raise failure or RuntimeError("no model available")
+    except Exception:
+        log.exception("agent failed; using the deterministic pipeline")
+        return None
+
+
+def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, str] | None = None, history: list | None = None) -> dict:
+    """``image`` is ``(bytes, mime_type)`` for an uploaded photo; ``history`` the last few ``{role, text}`` turns from the browser."""
     try:
         safe, pii = guardrails.check_input(query or "")
     except guardrails.Blocked as blocked:
@@ -140,7 +242,17 @@ def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, 
     route = Route.PRODUCTS if (image and tags) else get_router().guide(text)
     if route is Route.CHITCHAT and (POLICY_WORDS.search(text) or not extract_filters(text).is_empty()):
         route = Route.PRODUCTS  # a shopping entity or policy word beats a weak small-talk match
-    if route is Route.CART:
+    label = None  # set when the agent, not a fixed route, handled the message
+    from zaldi.connectors import get_connector
+
+    external = get_connector().name != "local"  # the fixed pipeline only knows this app's own catalogue
+    wants_agent = external or (MULTI_STEP.search(text) and route is not Route.CHITCHAT)
+    agent_result = _try_agent(text, session_id, _clean_history(history)) if wants_agent else None
+    if agent_result is not None:
+        result, label = agent_result, "agent"
+    elif external:
+        result, label = _connected_store_fallback(text, session_id), "products"
+    elif route is Route.CART:
         result = handle_cart_message(session_id, text)
     elif route is Route.CHECKOUT:
         result = _checkout(session_id)
@@ -149,8 +261,10 @@ def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, 
     else:
         result = _chitchat(text)
 
+    if result.get("action") == "collect_address" and "form" not in result["response"].lower():
+        result["response"] = f"{result['response']}\n\n{DETAILS_PROMPT}"  # the agent path: never leave the shopper guessing what to fill in
     secrets = [get_prompt("agent_system"), get_prompt("chitchat")]
     result["response"] = guardrails.scrub_output(result["response"], secrets)
-    result.update(type=route.value, pii_redacted=pii, image_tags=tags or None)
-    chat_log_repo.log_chat(text, result["response"], route.value)
+    result.update(type=label or route.value, pii_redacted=pii, image_tags=tags or None)
+    chat_log_repo.log_chat(text, result["response"], label or route.value, result.get("steps"))
     return result

@@ -20,5 +20,13 @@ export const AGENT_STEPS = {
   ],
 };
 
-const LABELS = { products: "Product search", cart: "Cart", checkout: "Checkout", chitchat: "Conversation" };
+const LABELS = { products: "Product search", cart: "Cart", checkout: "Checkout", chitchat: "Conversation", agent: "Agent" };
+// The agent reports what it really did: [{tool, summary, ok, ms}] -> the same [title, detail] pairs the fixed routes use.
+export const TOOL_TITLES = {
+  search_products: "Searched products", get_product: "Checked a product", search_policies: "Read store policies",
+  view_cart: "Looked at your cart", add_to_cart: "Updated your cart", remove_from_cart: "Updated your cart", start_checkout: "Started checkout",
+};
+export const stepsFor = (route, steps) => (steps?.length
+  ? steps.map((s) => [s.ok === false ? `${TOOL_TITLES[s.tool] || s.tool} (failed)` : TOOL_TITLES[s.tool] || s.tool, s.summary])
+  : AGENT_STEPS[route]);
 export const routeLabel = (route) => LABELS[route] || "Conversation";

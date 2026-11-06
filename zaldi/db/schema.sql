@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS chat_logs (
     query      TEXT NOT NULL,
     response   TEXT,
     route      TEXT,
+    steps      TEXT,  -- JSON list of the agent's tool steps (null for the fixed pipeline)
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

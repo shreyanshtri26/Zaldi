@@ -9,7 +9,7 @@ export default function Orb({ state = "idle", size = 80, smoke = false }) {
     <span className="orb3d" data-state={state} data-small={size < 40 || undefined} style={{ "--orb": `${size}px` }}
       role="img" aria-label={`Zaldi assistant, ${LABEL[state]}`}>
       {smoke && <Smoke state={state} />}
-      <span className="orb-body" />
+      <span className="orb-body"><span className="orb-land" /><span className="orb-cloud" /><span className="orb-cloud far" /><span className="orb-shade" /></span>
       <span className="orb-thread" />
     </span>
   );

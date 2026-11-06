@@ -9,16 +9,26 @@ from langchain_core.embeddings import Embeddings
 from zaldi import config
 
 
-def get_llm():
-    if config.LLM_PROVIDER == "groq":
+def get_llm(provider: str | None = None, model: str | None = None):
+    provider, model = provider or config.LLM_PROVIDER, model or config.LLM_MODEL
+    if provider == "groq":
         from langchain_groq import ChatGroq
 
-        return ChatGroq(temperature=0, model=config.LLM_MODEL, api_key=config.GROQ_API_KEY, max_retries=1, timeout=15)
+        return ChatGroq(temperature=0, model=model, api_key=config.GROQ_API_KEY, max_retries=1, timeout=15)
     from langchain_google_genai import ChatGoogleGenerativeAI
 
     # One retry and a short timeout: if the model is rate limited, the plain-text fallback answers in seconds, not ~40s.
-    return ChatGoogleGenerativeAI(temperature=0, model=config.LLM_MODEL, google_api_key=config.GOOGLE_API_KEY,
-                                  max_retries=1, timeout=15)
+    return ChatGoogleGenerativeAI(temperature=0, model=model, google_api_key=config.GOOGLE_API_KEY, max_retries=1, timeout=15)
+
+
+def get_fallback_llm():
+    """The optional second model (``LLM_FALLBACK_PROVIDER``/``LLM_FALLBACK_MODEL``), or ``None`` when not configured."""
+    provider, model = config.LLM_FALLBACK_PROVIDER, config.LLM_FALLBACK_MODEL
+    if not provider or not model or (provider, model) == (config.LLM_PROVIDER, config.LLM_MODEL):
+        return None
+    if (provider == "groq" and not config.GROQ_API_KEY) or (provider != "groq" and not config.GOOGLE_API_KEY):
+        return None
+    return get_llm(provider, model)
 
 
 class HashingEmbeddings(Embeddings):

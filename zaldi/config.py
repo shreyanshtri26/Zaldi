@@ -19,6 +19,9 @@ ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")  # required for CMS write endpoints
 # --- Models ------------------------------------------------------------------
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "google")  # "google" | "groq"
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.5-flash")
+# Optional second model, tried when the first fails (rate limit, outage), e.g. LLM_FALLBACK_PROVIDER=groq LLM_FALLBACK_MODEL=openai/gpt-oss-120b
+LLM_FALLBACK_PROVIDER = os.getenv("LLM_FALLBACK_PROVIDER", "")
+LLM_FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
 # "google" (Gemini embeddings) or "local" (offline hashing embeddings: lexical only, no API, used when no key is set)
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER") or ("google" if GOOGLE_API_KEY else "local")
@@ -29,6 +32,18 @@ STOREFRONT_URL = os.getenv("STOREFRONT_URL", "")  # checkout site the browser au
 BROWSER_CHANNEL = os.getenv("BROWSER_CHANNEL", "")  # "msedge"/"chrome" to use an installed browser instead of Playwright's
 BROWSER_NO_SANDBOX = os.getenv("BROWSER_NO_SANDBOX") == "1"  # needed for Chromium as root inside Docker
 RATE_LIMIT_CHAT = int(os.getenv("RATE_LIMIT_CHAT", "20"))  # chat messages per minute per visitor; 0 = off
+# Which store the agent works against: "local" (this app's own catalogue), "woocommerce", "shopify" or "fakestore" (read-only; link out to buy, or catalogue only).
+STORE_CONNECTOR = os.getenv("STORE_CONNECTOR", "local").strip().lower()
+FAKESTORE_URL = os.getenv("FAKESTORE_URL", "https://fakestoreapi.com")  # the free demo API, no key
+WOOCOMMERCE_URL = os.getenv("WOOCOMMERCE_URL", "")  # https://your-store.com
+WOOCOMMERCE_KEY = os.getenv("WOOCOMMERCE_KEY", "")  # read-only REST API consumer key
+WOOCOMMERCE_SECRET = os.getenv("WOOCOMMERCE_SECRET", "")
+SHOPIFY_DOMAIN = os.getenv("SHOPIFY_DOMAIN", "")  # your-store.myshopify.com
+SHOPIFY_STOREFRONT_TOKEN = os.getenv("SHOPIFY_STOREFRONT_TOKEN", "")  # public, read-only Storefront API token
+SHOPIFY_API_VERSION = os.getenv("SHOPIFY_API_VERSION", "2025-07")
+AGENT_DAILY_RUNS = int(os.getenv("AGENT_DAILY_RUNS", "500"))  # agent runs per day per server process (cost cap); 0 = unlimited
+AGENT_ENABLED = os.getenv("AGENT_ENABLED", "1") != "0"  # tool-using agent for multi-step requests; 0 = deterministic pipeline only
+AGENT_MAX_STEPS = int(os.getenv("AGENT_MAX_STEPS", "5"))  # tool-call rounds before the agent must answer
 RATE_LIMIT_LOGIN = int(os.getenv("RATE_LIMIT_LOGIN", "10"))  # admin login attempts per minute per visitor; 0 = off
 HANDSHAKE_TTL = 900  # seconds a checkout confirmation stays valid
 

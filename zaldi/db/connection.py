@@ -9,7 +9,7 @@ from zaldi import config
 SCHEMA_FILE = Path(__file__).with_name("schema.sql")
 
 # Columns added after the first release: (table, column, definition).
-MIGRATIONS = [("products", "image_url", "TEXT")]
+MIGRATIONS = [("products", "image_url", "TEXT"), ("chat_logs", "steps", "TEXT")]
 
 
 @contextmanager

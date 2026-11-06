@@ -68,3 +68,26 @@ html { scroll-behavior: smooth; }
   .chip { transform: none !important; transition: none; }
   .welcome > * { animation: none; } html { scroll-behavior: auto; }
 }
+
+/* tappable answers under an assistant question: left-aligned with the reply, gone once the next message is sent */
+.chips.quick { margin-top: 12px; justify-content: flex-start; }
+.chips.quick .chip { height: 34px; padding: 0 14px; }
+
+/* ---------- Home: shop by category + help ---------- */
+.cats { margin-top: 22px; }
+.cats-label { display: inline-flex; align-items: center; gap: 6px; margin: 0 auto; padding: 4px 8px; border: 0; background: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; }
+.cats-label svg { transition: transform 200ms ease; } .cats.open .cats-label svg, .cats:focus-within .cats-label svg { transform: rotate(180deg); }
+.cats { display: flex; flex-direction: column; align-items: center; }
+.cats-row { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 320ms ease, opacity 220ms ease, margin 220ms ease; }
+.cats.open .cats-row, .cats:focus-within .cats-row { max-height: 220px; opacity: 1; padding-top: 8px; }
+/* label and help chips share one line; the opened category row wraps onto the next line */
+.chip-line { align-items: center; }
+.chip-line .cats { display: contents; }
+.chip-line .cats-label { margin: 0; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
+.chip-line .cats-row { flex-basis: 100%; order: 2; }
+.cats .chips { margin-top: 0; }
+.chip.cat small { margin-left: 6px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip.cat.all { color: var(--ink); border-color: var(--accent); } .chip.cat.all svg { color: var(--accent); }
+.cat-panel .fields { display: grid; gap: 14px; align-content: start; }
+.cat-group { margin: 6px 0 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+@media (max-width: 640px) { .cats-row { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; } .cats.open .cats-row { padding-bottom: 4px; } .cats-row .chip { flex: none; } }

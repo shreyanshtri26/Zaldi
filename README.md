@@ -108,6 +108,64 @@ browser-automation checkout flow.
 -   A confirmation step before the checkout flow proceeds to payment.
 -   A built-in demo storefront available at `/store-sim`.
 
+### Tool-using agent and store connectors
+
+-   For multi-step requests (for example "compare these and add the
+    cheaper one"), the model chooses store tools step by step, up to
+    `AGENT_MAX_STEPS` (default 5), then answers. Simple messages stay on
+    the fast deterministic path, and if the model fails the normal
+    pipeline answers.
+-   Tools are built from what the connected store supports. The
+    shopper's session is bound on the server and never visible to the
+    model, tool errors are returned to the model so it can recover, and
+    checkout still ends at the secure form and a human confirmation.
+-   The tools used are shown under each answer and saved with the chat
+    log, so the admin transcript shows what really happened.
+-   Policy answers come from per-section chunks that carry the section
+    title (the citation), ranked by vector similarity fused with keyword
+    overlap.
+-   The page sends the last six turns with each message as untrusted
+    context (PII-redacted, injection-checked, quoted in one block).
+    Lasting preferences such as size and budget are saved through a
+    tool.
+-   Stores are connected through `StoreConnector` classes in
+    `zaldi/connectors/`, selected with `STORE_CONNECTOR`: `local` (this
+    app's catalogue and cart), `woocommerce` and `shopify` (read-only
+    search; each product card links to the store's own page, so no cart
+    or payment data passes through Zaldi), or `fakestore` (the free
+    [Fake Store API](https://fakestoreapi.com) demo catalogue, no key,
+    catalogue only). Adding a platform means writing one class.
+    Amazon and Flipkart offer only affiliate catalogue APIs, so they
+    would be catalogue-and-link connectors; they are not built yet.
+-   The assistant asks for what it needs. A vague request ("suggest
+    something") gets a question with tappable category answers; the
+    agent can ask mid-run with its `ask_shopper` tool (up to four
+    tappable options); and at checkout it lists exactly what the secure
+    form wants (name, mobile, address, city, state, PIN code, delivery
+    speed) and opens the form. Those details never go through the chat
+    or the model.
+-   Admin -> Content -> **Store connection** lets staff pick the store
+    and enter its address and keys without editing `.env`, with a Test
+    connection button. Secrets are write-only (never sent back to the
+    browser) and are stored in the app database, so production
+    deployments should prefer environment variables. Changes apply to the
+    next customer message.
+-   The admin link in the chat navbar appears only while an admin is
+    signed in; visitors do not see it.
+-   Product images appear on the cards in replies (larger when there is a
+    single result). The built-in catalogue ships without image URLs, so
+    add them in the admin product editor.
+-   Scripted-model evals (`tests/test_agent_loop.py`,
+    `tests/test_agent_evals.py`, `tests/test_connectors.py`) and a
+    retrieval test set run offline in CI.
+
+Embed the assistant on another site with one tag; it opens in an
+isolated frame and never reads the host page's data:
+
+``` html
+<script src="https://YOUR-ZALDI-HOST/widget.js" async></script>
+```
+
 ## Customer experience
 
 The chat interface is designed to keep product discovery simple and
@@ -568,6 +626,29 @@ secrets in `.env` for local development and do not commit that file.
                                       used by checkout automation.
                                       Defaults to the built-in demo
                                       storefront.
+
+  `STORE_CONNECTOR`                   `local` (default), `woocommerce`,
+                                      `shopify` or `fakestore`. Per-store
+                                      settings: `WOOCOMMERCE_URL`,
+                                      `WOOCOMMERCE_KEY`,
+                                      `WOOCOMMERCE_SECRET`,
+                                      `SHOPIFY_DOMAIN`,
+                                      `SHOPIFY_STOREFRONT_TOKEN`,
+                                      `SHOPIFY_API_VERSION`,
+                                      `FAKESTORE_URL`.
+
+  `AGENT_ENABLED`                     Turns the tool-using agent on
+                                      (default) or off (`0`).
+
+  `AGENT_MAX_STEPS`                   Tool rounds per answer. Default 5.
+
+  `AGENT_DAILY_RUNS`                  Agent runs per day per server
+                                      process (cost cap). Default 500;
+                                      `0` means unlimited.
+
+  `LLM_FALLBACK_PROVIDER`,            Optional second model used when the
+  `LLM_FALLBACK_MODEL`                first fails, for example `groq` and
+                                      `openai/gpt-oss-120b`.
   -----------------------------------------------------------------------
 
 Example configuration:
@@ -838,9 +919,15 @@ model generation is unavailable.
 
 ## Current limitations
 
--   **Chat persistence:** the API is stateless. Chat history is stored
-    in the browser, and the assistant does not retain conversational
-    context across independent requests.
+-   **Chat persistence:** the API keeps no conversation. Chat history is
+    stored in the browser, which sends the last six turns with each
+    message; only preferences and the cart are stored per session.
+-   **One store per server:** `STORE_CONNECTOR` is global, so serving
+    several stores currently means one deployment each. Connected stores
+    are read-only: shoppers buy on the store itself.
+-   **Prices and stock from other stores:** a connected store's prices
+    are shown in its own currency, and stock is shown only when the
+    store reports it (the Fake Store API does not).
 -   **Admin authentication:** the current implementation uses one shared
     admin token rather than individual administrator accounts and
     role-based access.

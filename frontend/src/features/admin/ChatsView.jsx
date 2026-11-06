@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AGENT_STEPS, routeLabel } from "../../shared/utils/agentSteps.js";
+import { routeLabel, stepsFor } from "../../shared/utils/agentSteps.js";
 import Icon from "../../shared/components/Icon.jsx";
 
 // Master/detail transcript viewer. Data comes from /admin/stats (the 20 most recent chats).
@@ -26,8 +26,8 @@ export default function ChatsView({ chats }) {
             <div className="agent-run">
               <div className="agent-run-head"><b>Execution timeline</b><span className="status done"><Icon name="check" size={12} /> Completed</span></div>
               <ol className="steps">
-                {(AGENT_STEPS[current.route] || []).map(([title, detail]) => (
-                  <li key={title}><span className="tick"><Icon name="check" size={12} /></span><div><b>{title}</b><span>{detail}</span></div></li>
+                {(stepsFor(current.route, current.steps) || []).map(([title, detail], i) => (
+                  <li key={`${i}-${title}`}><span className="tick"><Icon name="check" size={12} /></span><div><b>{title}</b><span>{detail}</span></div></li>
                 ))}
               </ol>
             </div>
