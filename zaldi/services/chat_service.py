@@ -10,7 +10,6 @@ import logging
 import re
 import time
 from datetime import date
-from functools import lru_cache
 
 from zaldi import config
 from zaldi.ai import guardrails
@@ -33,9 +32,20 @@ CARD_FIELDS = ("id", "product_name", "brand", "category", "color", "size", "mate
                "image_url", "description")
 
 
-@lru_cache(maxsize=1)
+_routers: dict[str, SemanticRouter] = {}
+
+
 def get_router() -> SemanticRouter:
-    return SemanticRouter()  # embeds (or loads cached) route samples once, on first chat
+    """One router per embedding space (a store on its own Gemini key may use different embeddings than the server's)."""
+    from zaldi.ai.models import embedding_id
+
+    key = embedding_id()
+    if key not in _routers:
+        _routers[key] = SemanticRouter()  # embeds (or loads cached) route samples once per space, on first chat
+    return _routers[key]
+
+
+get_router.cache_clear = _routers.clear  # kept so callers can reset them
 
 
 def _as_text(content) -> str:

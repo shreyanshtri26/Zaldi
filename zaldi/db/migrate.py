@@ -68,9 +68,22 @@ def migrate_store(store: str) -> dict[str, int]:
     return copied
 
 
-def migrate_all() -> dict[str, dict[str, int]]:
+def _wipe() -> None:
+    """Empty the Postgres target: drop every other store's schema and clear the default store's tables (the schema itself stays)."""
+    with stores.use(stores.DEFAULT):
+        init_db(seed=False)  # make sure the tables exist, so there is something to clear
+        with connect() as conn:
+            for row in conn.execute("SELECT slug FROM stores").fetchall():
+                pg.drop_schema(row["slug"])
+            conn.execute("TRUNCATE " + ", ".join(TABLES + REGISTRY_TABLES + ("vectors", "vector_meta")) + " RESTART IDENTITY CASCADE")
+
+
+def migrate_all(replace: bool = False) -> dict[str, dict[str, int]]:
+    """Copy every store. ``replace`` first erases whatever is in the Postgres target (the caller must have asked for that explicitly)."""
     if not pg.enabled():
         raise ValidationError("set DATABASE_URL to the Postgres database first")
+    if replace:
+        _wipe()
     report = {stores.DEFAULT: migrate_store(stores.DEFAULT)}  # first: it carries the registry that lists the other stores
     for row in stores.list_stores():
         if row["slug"] != stores.DEFAULT:

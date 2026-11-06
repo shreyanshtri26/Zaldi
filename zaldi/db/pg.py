@@ -63,7 +63,7 @@ def _get_pool():
             if _pool is not None:
                 _pool.close()
             _pool = ConnectionPool(config.DATABASE_URL, min_size=1, max_size=int(config.PG_POOL_SIZE), open=True, timeout=30,
-                                   kwargs={"row_factory": dict_row, "autocommit": False})
+                                   kwargs={"row_factory": dict_row, "autocommit": False, "prepare_threshold": None})  # no server-side prepared statements: safe behind PgBouncer
             _pool_url = config.DATABASE_URL
     return _pool
 

@@ -83,6 +83,26 @@ export async function sendChatStream(message, history, onStep) {
 export const accountLogin = (email, password) => request("/admin/account-login", { method: "POST", body: { email, password } });
 export const signupStore = (body) => request("/signup", { method: "POST", body });
 export const getEmbed = (token) => request("/admin/embed", { token });
+// AI model: provider, keys (write-only), model dropdown, test
+export const getAiSettings = (token) => request("/admin/ai-key", { token });
+export const saveAiKey = (provider, api_key, token) => request("/admin/ai-key", { method: "PUT", body: { provider, api_key }, token });
+export const removeAiKey = (provider, token) => request(`/admin/ai-key?provider=${provider}`, { method: "DELETE", token });
+export const testAiKey = (provider, token) => request("/admin/ai-key/test", { method: "POST", body: { provider }, token });
+export const getAiModels = (provider, token) => request(`/admin/ai-models?provider=${provider}`, { token });
+export const saveAiModel = (provider, model, token) => request("/admin/ai-model", { method: "PUT", body: { provider, model }, token });
+export const resetAiModel = (provider, token) => request(`/admin/ai-model?provider=${provider}`, { method: "DELETE", token });
+export const saveAiProvider = (provider, token) => request("/admin/ai-provider", { method: "PUT", body: { provider }, token });
+export const resetAiProvider = (token) => request("/admin/ai-provider", { method: "DELETE", token });
+// Server settings (server admin only) and account password
+export const getServerSettings = (token) => request("/admin/server", { token });
+export const changeServerPassword = (current, next, token) => request("/admin/server/password", { method: "PUT", body: { current, new: next }, token });
+export const removeServerPassword = (current, token) => request("/admin/server/password", { method: "DELETE", body: { current }, token });
+export const testDatabase = (url, token) => request("/admin/server/database/test", { method: "POST", body: { url }, token });
+export const saveDatabase = (url, token) => request("/admin/server/database", { method: "PUT", body: { url }, token });
+export const removeDatabase = (token) => request("/admin/server/database", { method: "DELETE", token });
+export const copyDatabase = (url, replace, confirm, token) => request("/admin/server/database/copy", { method: "POST", body: { url, replace, confirm }, token });
+export const restartServer = (confirm, token) => request("/admin/server/restart", { method: "POST", body: { confirm }, token });
+export const changeAccountPassword = (current, next, token) => request("/admin/account/password", { method: "PUT", body: { current, new: next }, token });
 export const getCart = () => request("/cart");
 export const addToCart = (product_id, quantity = 1) => request("/cart/items", { method: "POST", body: { product_id, quantity } });
 export const setCartQuantity = (id, quantity) => request(`/cart/items/${id}`, { method: "PUT", body: { quantity } });

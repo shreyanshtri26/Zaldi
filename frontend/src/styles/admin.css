@@ -78,3 +78,9 @@ td .sub { color: var(--muted); font-size: 12px; } td.num, th.num { text-align: r
 
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
 .stat small { color: var(--muted); }
+
+/* Result messages in settings panels (connection tests, key tests, copy reports): a calm green or amber box, never just bold text. */
+.note { padding: 12px 14px; border-radius: var(--radius-sm, 10px); border: 1px solid var(--border); background: var(--surface-2); line-height: 1.5; font-size: 14px; }
+.note.ok { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 9%, var(--surface-2)); }
+.note.bad { border-color: color-mix(in srgb, var(--amber, #E9B949) 65%, var(--border)); background: color-mix(in srgb, var(--amber, #E9B949) 10%, var(--surface-2)); }
+.note ul { margin: 6px 0 0; padding-left: 18px; }

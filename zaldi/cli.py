@@ -30,7 +30,7 @@ def main() -> None:
         from zaldi.errors import ValidationError
 
         try:
-            report = migrate_all()
+            report = migrate_all(replace="--replace" in sys.argv)
         except ValidationError as exc:
             sys.exit(str(exc))
         for store, tables in report.items():

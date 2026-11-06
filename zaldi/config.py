@@ -67,6 +67,10 @@ HANDSHAKE_TTL = 900  # seconds a checkout confirmation stays valid
 
 # --- Paths -------------------------------------------------------------------
 DATA_DIR = Path(os.getenv("DATA_DIR") or BASE_DIR / "data")  # point at a persistent disk in production
+if not DATABASE_URL:  # an address chosen in the admin portal (saved encrypted on the server's disk); the environment always wins
+    from zaldi import bootstrap
+
+    DATABASE_URL = bootstrap.load(DATA_DIR, SECRET_KEY)
 DB_PATH = DATA_DIR / "zaldi.db"  # products, policies, chat logs (the CMS)
 SEED_DIR = BASE_DIR / "data" / "seed"  # one-time seed data; the database is the source of truth afterwards
 SEED_PRODUCTS_CSV = SEED_DIR / "products.csv"

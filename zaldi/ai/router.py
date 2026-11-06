@@ -46,7 +46,7 @@ class SemanticRouter:
 
         Saves ~90 API calls per restart (the Gemini free tier allows 100 per minute).
         """
-        key = hashlib.sha256((config.EMBEDDING_MODEL + "\n".join(texts)).encode()).hexdigest()[:16]
+        key = hashlib.sha256((embedding_id() + "\n" + config.EMBEDDING_MODEL + "\n".join(texts)).encode()).hexdigest()[:16]
         path = config.ROUTER_CACHE_DIR / f"{key}.json"
         try:
             return json.loads(path.read_text())

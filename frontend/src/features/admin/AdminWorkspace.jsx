@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getStats } from "../../api/client.js";
+import { getServerSettings, getStats } from "../../api/client.js";
 import AppShell from "../../shared/components/AppShell.jsx";
 import Icon from "../../shared/components/Icon.jsx";
 import useLenis from "../../shared/hooks/useLenis.js";
@@ -13,18 +13,20 @@ import Dashboard from "./Dashboard.jsx";
 import PoliciesView from "./PoliciesView.jsx";
 import ProductsView from "./ProductsView.jsx";
 import SearchDialog from "./SearchDialog.jsx";
+import ServerView from "./ServerView.jsx";
 
 // [view id, label, icon name]
 const NAV_ITEMS = [["overview", "Overview", "dash"], ["products", "Products", "box"], ["policies", "Policies", "doc"], ["chats", "Chats", "msgs"], ["metrics", "Metrics", "dash"], ["content", "Content", "sliders"]];
 const viewFromHash = () => {
   const hash = window.location.hash.slice(1);
-  return NAV_ITEMS.some(([id]) => id === hash) ? hash : "overview";
+  return NAV_ITEMS.some(([id]) => id === hash) || hash === "server" ? hash : "overview";
 };
 
 export default function AdminWorkspace() {
   const { token, logout } = useAuth();
   const [view, setView] = useState(viewFromHash);
   const [stats, setStats] = useState(null);
+  const [server, setServer] = useState(null); // only the server admin can read this; for a store owner it stays null and the Server page is hidden
   const pageRef = useRef(null);
   useLenis(pageRef);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -38,6 +40,7 @@ export default function AdminWorkspace() {
   }, []);
 
   useEffect(() => { getStats(token).then(setStats).catch(logout); }, [token, logout, view]);
+  useEffect(() => { getServerSettings(token).then(setServer).catch(() => setServer(null)); }, [token]);
 
   useEffect(() => {
     const onHashChange = () => setView(viewFromHash());
@@ -51,7 +54,7 @@ export default function AdminWorkspace() {
 
   const nav = (
     <nav className="tabs">
-      {NAV_ITEMS.map(([id, label, icon]) => (
+      {(server ? [...NAV_ITEMS, ["server", "Server", "shield"]] : NAV_ITEMS).map(([id, label, icon]) => (
         <button key={id} className={`tab${view === id ? " active" : ""}`} onClick={() => goTo(id)}>
           <Icon name={icon} size={15} /> {label}
           {id === "products" && stats?.low_stock > 0 && <span className="count">{stats.low_stock} low</span>}
@@ -76,6 +79,7 @@ export default function AdminWorkspace() {
         {view === "policies" && <PoliciesView key={presetQuery} initialQuery={presetQuery} />}
         {view === "chats" && <ChatsView chats={stats?.recent_chats || []} />}
         {view === "metrics" && <MetricsView />}
+        {view === "server" && server && <ServerView server={server} onChange={(next) => setServer((s) => ({ ...s, ...next }))} />}
         {view === "content" && <ContentView />}
         </div>
       </div>

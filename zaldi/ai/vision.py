@@ -26,7 +26,10 @@ def describe_image(data: bytes, mime: str, llm=None) -> str:
     if llm is None:
         from zaldi.ai.models import get_llm
 
-        llm = get_llm()
+        from zaldi.services import ai_key
+
+        # Reading a photo needs a vision model. Gemini has one; a store that chats on a text-only Groq model still gets photo search.
+        llm = get_llm("google") if ai_key.key_for("google") else get_llm()
     uri = f"data:{mime};base64,{base64.b64encode(data).decode()}"
     reply = llm.invoke([HumanMessage(content=[{"type": "text", "text": PROMPT},
                                               {"type": "image_url", "image_url": {"url": uri}}])]).content

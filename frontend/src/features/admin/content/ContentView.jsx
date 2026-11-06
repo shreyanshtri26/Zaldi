@@ -2,10 +2,12 @@ import { useState } from "react";
 import PromptsEditor from "./PromptsEditor.jsx";
 import QuickActionsEditor from "./QuickActionsEditor.jsx";
 import StorefrontSettings from "./StorefrontSettings.jsx";
+import AccountPanel from "./AccountPanel.jsx";
+import AiPanel from "./AiPanel.jsx";
 import EmbedPanel from "./EmbedPanel.jsx";
 import StoreConnection from "./StoreConnection.jsx";
 
-const TABS = [["storefront", "Storefront"], ["assistant", "Assistant"], ["store", "Store connection"], ["embed", "Add to your website"]];
+const TABS = [["storefront", "Storefront"], ["assistant", "Assistant"], ["store", "Store connection"], ["ai", "AI model"], ["embed", "Add to your website"], ["account", "Account"]];
 
 // CMS-managed content that is not a product or policy: customer-facing text, quick actions and assistant prompts.
 export default function ContentView() {
@@ -24,7 +26,9 @@ export default function ContentView() {
       {tab === "storefront" && <div style={{ display: "grid", gap: 16 }}><StorefrontSettings /><QuickActionsEditor /></div>}
       {tab === "assistant" && <PromptsEditor />}
       {tab === "store" && <StoreConnection />}
+      {tab === "ai" && <AiPanel />}
       {tab === "embed" && <EmbedPanel />}
+      {tab === "account" && <AccountPanel />}
     </div>
   );
 }

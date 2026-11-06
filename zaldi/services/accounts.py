@@ -80,3 +80,15 @@ def signup(email: str, password: str, store: str, name: str) -> dict:
         stores.delete_store(created["slug"])  # do not leave an owner-less store behind
         raise
     return {"account": account, "token": issue_token(account), "store": created}
+
+
+def change_password(email: str, current: str, new: str) -> dict:
+    """An account changes its own password: the current one must be right, the new one must be different and long enough."""
+    account = authenticate(email, current)
+    if new == current:
+        raise ValidationError("The new password must be different from the current one.")
+    if len(new or "") < MIN_PASSWORD:
+        raise ValidationError(f"Use at least {MIN_PASSWORD} characters for the new password.")
+    with connect(store=stores.DEFAULT) as conn:
+        conn.execute("UPDATE admin_users SET password_hash = ? WHERE email = ?", (generate_password_hash(new), account["email"]))
+    return {"ok": True}

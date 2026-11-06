@@ -69,3 +69,17 @@ def test_it_refuses_to_run_without_a_postgres_url(temp_db, monkeypatch):
     monkeypatch.setattr(config, "DATABASE_URL", "")
     with pytest.raises(ValidationError, match="DATABASE_URL"):
         migrate.migrate_all()
+
+
+def test_replace_erases_what_is_already_in_postgres_before_copying(temp_db):
+    build_sqlite(config.DB_PATH)
+    init_db()  # the target already has the seeded sample catalogue, like a freshly started hosted app
+    with connect() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM products").fetchone()[0] > 20
+    with pytest.raises(ValidationError, match="already has rows"):
+        migrate.migrate_all()
+    report = migrate.migrate_all(replace=True)
+    assert report["default"]["products"] == 2
+    with connect() as conn:
+        assert sorted(r["product_code"] for r in conn.execute("SELECT product_code FROM products")) == ["K5", "S9"]  # the seed rows are gone
+        assert conn.execute("SELECT COUNT(*) FROM policies").fetchone()[0] == 1 and conn.execute("SELECT COUNT(*) FROM vectors").fetchone()[0] == 0
