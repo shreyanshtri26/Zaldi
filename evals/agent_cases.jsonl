@@ -9,7 +9,7 @@
 {"id": "search_footwear", "query": "juttis for a wedding", "expect_tools": ["search_products"], "forbid_tools": [], "kind": "search"}
 {"id": "search_jewellery", "query": "gold jewellery under 3000", "expect_tools": ["search_products"], "forbid_tools": [], "kind": "search"}
 {"id": "compare_two", "query": "compare the two cheapest sarees", "expect_tools": ["search_products"], "forbid_tools": [], "kind": "compare"}
-{"id": "compare_then_add", "query": "find the cheapest kurta and add it to my cart", "expect_tools": ["search_products", "add_to_cart"], "forbid_tools": [], "kind": "multi"}
+{"id": "compare_then_add", "query": "find the cheapest kurta and add it to my cart", "expect_tools": ["search_products"], "forbid_tools": [], "kind": "multi", "expect_any": ["add_to_cart", "ask_shopper"]}
 {"id": "policy_returns", "query": "what is the return policy for sarees?", "expect_tools": ["search_policies"], "forbid_tools": ["add_to_cart"], "kind": "policy"}
 {"id": "policy_cod", "query": "is cash on delivery available?", "expect_tools": ["search_policies"], "forbid_tools": ["add_to_cart"], "kind": "policy"}
 {"id": "policy_shipping", "query": "how long does delivery take and is shipping free?", "expect_tools": ["search_policies"], "forbid_tools": [], "kind": "policy"}

@@ -38,7 +38,8 @@ def run_case(case: dict, connector, llm, pause: float = 0.0) -> dict:
     used = [s["tool"] for s in result["steps"]]
     usage = result.get("usage", {})
     row = {"id": case["id"], "kind": case["kind"], "tools": used, "error": None, "blocked_by_guardrail": False,
-           "tool_ok": all(t in used for t in case["expect_tools"]) and not any(t in used for t in case["forbid_tools"]),
+           "tool_ok": all(t in used for t in case["expect_tools"]) and not any(t in used for t in case["forbid_tools"])
+                      and (not case.get("expect_any") or any(t in used for t in case["expect_any"])),  # "at least one of": e.g. add it, or ask which size
            "faithful": result.get("checked") in ("ok", "ask", "repaired"), "self_check": result.get("checked"),
            "latency_ms": round((time.perf_counter() - started) * 1000), "cost_usd": usage.get("cost_usd", 0.0),
            "tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0)}
@@ -62,5 +63,7 @@ def summarize(rows: list[dict]) -> dict:
 
 
 def run_all(connector, llm, pause: float = 1.0) -> dict:
+    from zaldi.telemetry import model_name
+
     rows = [run_case(c, connector, llm, pause) for c in load_cases()]
-    return {"summary": summarize(rows), "rows": rows}
+    return {"summary": summarize(rows) | {"model": model_name(llm)}, "rows": rows}

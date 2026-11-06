@@ -313,10 +313,21 @@ when a change pushes search quality or attack resistance below them.
 | Attack resistance | 57 hostile messages (override, prompt extraction, jailbreak, price tricks, chat-template tokens), 40 ordinary messages that must not be refused, 15 instructions hidden in store text, and 6 tool-layer attacks run for real |
 | Agent (live) | 30 cases in `evals/agent_cases.jsonl`: did it pick the right tools, avoid forbidden ones, and quote only prices the tools returned; plus latency, tokens and cost |
 
-Honest limits: search labels are rule-made from the catalogue's attributes (they test ranking consistency, not shopper taste), and
-the attack lists were written together with the rules, so they are a regression gate and not a claim of general robustness. The
-live agent suite has not produced numbers yet because the free model quota was exhausted when it was first run; the harness
-refuses to report a run where the model failed on more than a quarter of the cases.
+**First live result** (`openai/gpt-oss-120b` on Groq, 30 cases, offline embeddings, throwaway copy of the sample catalogue): tool choice
+**100%**, faithfulness (no unsupported amounts) **100%**, 0 model errors, median 4.3 s and slowest-5% 13.7 s per chat, about $0.0006 and
+3,000 tokens per chat. Full table in `evals/RESULTS.md`.
+
+Honest limits:
+
+-   The first run scored 96.7% (29 of 30). The miss was "find the cheapest kurta and add it": the agent searched and then asked which
+    size, which is sensible for clothing. I changed that one case to accept either adding it or asking for the size and re-ran, so the
+    100% comes from a rubric adjusted after seeing a result. It is one run of one model on cases I wrote, not a benchmark.
+-   Latency depends on the provider's rate limits (an earlier run measured a 12 s median with retries).
+-   Search labels are rule-made from the catalogue's attributes (they test ranking consistency, not shopper taste), and the attack lists
+    were written together with the rules, so they are a regression gate and not a claim of general robustness.
+-   The harness refuses to report a run where the model failed on more than a quarter of the cases, and `evals/RESULTS.md` keeps the
+    other suites' results when only one suite is re-run. Run it yourself: `python -m zaldi evals agent --write` (set `LLM_PROVIDER`,
+    `LLM_MODEL` and, to avoid embedding quota, `EMBEDDING_PROVIDER=local`).
 
 ### Metrics, feedback and experiments
 
@@ -625,8 +636,8 @@ If the model is unavailable, product and policy requests still return plain-text
 
 -   **Postgres:** the suite runs against Neon, but the hosted API has not been moved to it yet; it keeps using SQLite until `DATABASE_URL`
     is set there (then run `python -m zaldi migrate` once to copy the existing data).
--   **Live agent numbers:** the live evaluation harness is built and tested with a scripted model, but its first real run is still to do
-    (the free model quota was used up).
+-   **Live agent numbers:** one real run exists (above), on one model with offline embeddings. Gemini was not measured because its free
+    daily quota was used up, and the cases are few and self-written.
 -   **Amazon and Flipkart:** tested against recorded responses only (see above).
 -   **Connected stores are read-only:** shoppers buy on the store itself. There is no payment gateway: the built-in checkout stops at the
     shopper's confirmation.

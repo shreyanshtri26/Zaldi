@@ -77,7 +77,7 @@ def markdown(results: dict) -> str:
     if "agent" in results:
         s = results["agent"]["summary"]
         out += [f"## Agent with a live model ({s['cases']} cases)", "", "| Metric | Value |", "|---|---|",
-                f"| Tool-choice accuracy | {s['tool_choice_accuracy']:.1%} |", f"| Faithfulness (no unsupported amounts) | {s['faithfulness']:.1%} |",
+                f"| Model | {s.get('model') or 'unknown'} |", f"| Tool-choice accuracy | {s['tool_choice_accuracy']:.1%} |", f"| Faithfulness (no unsupported amounts) | {s['faithfulness']:.1%} |",
                 f"| Latency p50 / p95 | {s['latency_ms_p50']} ms / {s['latency_ms_p95']} ms |", f"| Cost per chat (estimated) | ${s['cost_usd_per_chat']:.4f} |",
                 f"| Tokens per chat | {s['tokens_per_chat']} |", f"| Model errors | {s['model_errors']} |", ""]
     return "\n".join(out)
@@ -125,10 +125,8 @@ def main(argv: list[str]) -> int:
         if saved:
             restore(saved)
     if which == "agent" or "--live" in argv:  # spends model quota, so never part of a plain "all"
+        saved_agent = offline_environment()  # a throwaway copy of the sample catalogue: your real data and search index are not touched
         try:
-            from zaldi.db import init_db
-
-            init_db()
             agent = run_agent_suite()
             if agent["summary"]["model_errors"] > agent["summary"]["cases"] // 4:  # numbers from a model that was down would mislead
                 print(f"agent suite not reported: the model failed on {agent['summary']['model_errors']} of {agent['summary']['cases']} cases (rate limit or outage). Run it again later.")
@@ -136,6 +134,12 @@ def main(argv: list[str]) -> int:
                 results["agent"] = agent
         except Exception as exc:
             print(f"agent suite skipped: {type(exc).__name__}: {str(exc)[:160]}")
+        finally:
+            restore(saved_agent)
+    if write:  # a partial run (only the agent suite, say) must not erase the other suites' saved results
+        latest = RESULTS_DIR / "latest.json"
+        if latest.exists():
+            results = {**json.loads(latest.read_text(encoding="utf-8")), **results}
     print(markdown(results))
     failed = check_thresholds(results) if {"retrieval", "redteam"} <= set(results) else []
     for f in failed:
