@@ -29,13 +29,12 @@ def temp_db(tmp_path, monkeypatch):
     _policies.cache_clear()  # cached answers belong to the previous test's database
     yield tmp_path
     if test_pg:
-        from zaldi.db import pg
+        import psycopg  # own connection: a test may have changed config.DATABASE_URL, so the app's pool is not safe to use here
 
-        with pg._get_pool().connection() as raw:  # the default store's schema and every store schema made from it
-            names = [r["nspname"] for r in raw.execute("SELECT nspname FROM pg_namespace WHERE nspname LIKE %s", (schema + "%",)).fetchall()]
+        with psycopg.connect(test_pg, autocommit=True) as raw:  # the default store's schema and every store schema made from it
+            names = [r[0] for r in raw.execute("SELECT nspname FROM pg_namespace WHERE nspname LIKE %s", (schema + "%",)).fetchall()]
             for name in names:
                 raw.execute(f'DROP SCHEMA IF EXISTS "{name}" CASCADE')
-            raw.commit()
 
 
 @pytest.fixture

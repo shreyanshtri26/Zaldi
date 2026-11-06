@@ -1,5 +1,5 @@
 """Command line: ``python -m zaldi`` (terminal chat) and ``python -m zaldi ingest`` (rebuild the product index),
-``python -m zaldi evals [retrieval|redteam|agent|all] [--write]``,
+``python -m zaldi migrate`` (copy SQLite data into Postgres), ``python -m zaldi evals [retrieval|redteam|agent|all] [--write]``,
 and ``python -m zaldi import-images <folder>`` (link photos named after product codes)."""
 import sys
 
@@ -25,6 +25,17 @@ def main() -> None:
         from zaldi.search.ingest import ingest
 
         print(f"Indexed {ingest()} products.")
+    elif sys.argv[1:2] == ["migrate"]:
+        from zaldi.db.migrate import migrate_all
+        from zaldi.errors import ValidationError
+
+        try:
+            report = migrate_all()
+        except ValidationError as exc:
+            sys.exit(str(exc))
+        for store, tables in report.items():
+            print(f"{store}: " + (", ".join(f"{t} {n}" for t, n in tables.items()) or "no data found"))
+        print("Done. Search vectors rebuild on the first search. The SQLite files were not changed.")
     elif sys.argv[1:2] == ["evals"]:
         from zaldi.evals.runner import main as run_evals
 
