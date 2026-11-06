@@ -1,21 +1,12 @@
-import { useEffect, useState } from "react";
 import Icon from "../../shared/components/Icon.jsx";
-import Orb from "../../shared/components/Orb.jsx";
 import { AGENT_STEPS, routeLabel } from "../../shared/utils/agentSteps.js";
 
 // Compact waiting box: a title and blurred lines that "type" themselves. The API has no streaming, so there is no real
 // progress to show; a short note appears only if the reply is slow.
 export function AgentWorking() {
-  const [slow, setSlow] = useState(false);
-  useEffect(() => {
-    const late = setTimeout(() => setSlow(true), 8000);
-    return () => clearTimeout(late);
-  }, []);
   return (
     <div className="run-card" role="status" aria-live="polite">
-      <div className="run-head"><Orb state="processing" size={18} /><b>Zaldi is responding<span className="dots" aria-hidden="true"><i /><i /><i /></span></b></div>
-      <div className="typing" aria-hidden="true"><i /><i /><i /><b /></div>
-      {slow && <p className="run-slow">Taking a little longer than usual.</p>}
+      <div className="typing" aria-hidden="true"><i /><i /><i /><i /></div>
     </div>
   );
 }

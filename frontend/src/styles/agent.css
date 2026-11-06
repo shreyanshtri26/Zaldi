@@ -1,5 +1,7 @@
 /* ---------- Assistant status: bot avatar, working card, execution timeline ----------
    Warm orange accents come from the agent-status reference; used only here, not across the app. */
+.av-col { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 44px; }
+.av-col span { font-size: 11px; font-weight: 600; color: var(--muted); }
 .bot-avatar { flex: none; display: inline-grid; place-items: center; border-radius: 10px; color: var(--brand-ink); background: var(--brand); box-shadow: 0 0 0 1px var(--border); }
 .bot-avatar.active { box-shadow: 0 0 0 3px var(--agent-glow); animation: glow 1.6s ease-in-out infinite; }
 
@@ -22,6 +24,7 @@
 
 @keyframes glow { 0%, 100% { box-shadow: 0 0 0 2px var(--agent-glow); } 50% { box-shadow: 0 0 0 6px var(--agent-glow); } }
 @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.75); opacity: .6; } }
+@keyframes soft-pulse { 50% { opacity: .35; } }
 @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 @keyframes pop-in { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -51,13 +54,16 @@
 @media (prefers-reduced-motion: reduce) { .dots i { animation: none; } }
 
 /* waiting box: blurred lines that "type" themselves out, then the real answer blurs in word by word */
-.typing { margin: 14px 0 4px; position: relative; }
-.typing i { display: block; height: 9px; margin: 8px 0; border-radius: 6px; transform-origin: left; filter: blur(2.5px);
-  background: color-mix(in srgb, var(--ink) 24%, transparent); animation: type-line 2.6s cubic-bezier(.4, 0, .2, 1) infinite; }
-.typing i:nth-child(1) { width: 94%; } .typing i:nth-child(2) { width: 76%; animation-delay: .35s; } .typing i:nth-child(3) { width: 48%; animation-delay: .7s; }
-.typing b { position: absolute; left: 50%; bottom: 0; width: 2px; height: 13px; border-radius: 2px; background: var(--accent); filter: blur(1px); animation: caret 1s steps(2) infinite; }
-@keyframes type-line { 0% { transform: scaleX(.04); opacity: .35; } 55%, 85% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
-@keyframes caret { 50% { opacity: 0; } }
+.run-card:has(.typing) { min-width: min(420px, 70vw); animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe { 50% { box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 28%, transparent); border-color: color-mix(in srgb, var(--accent) 45%, var(--agent-line)); } }
+.typing { margin: 0; position: relative; }
+.typing i { display: block; height: 9px; margin: 9px 0; border-radius: 6px; transform-origin: left; filter: blur(2.5px);
+  /* a bright accent band sweeps across each line while the line grows and un-blurs, so text looks like it is being written */
+  background: linear-gradient(100deg, color-mix(in srgb, var(--ink) 14%, transparent) 30%, var(--accent) 50%, color-mix(in srgb, var(--ink) 14%, transparent) 70%) 140% 0 / 250% 100%;
+  animation: type-line 2.8s cubic-bezier(.4, 0, .2, 1) infinite, shimmer 1.5s linear infinite; }
+.typing i:nth-child(1) { width: 94%; } .typing i:nth-child(2) { width: 78%; animation-delay: .3s; } .typing i:nth-child(3) { width: 86%; animation-delay: .6s; } .typing i:nth-child(4) { width: 42%; animation-delay: .9s; }
+@keyframes type-line { 0% { transform: scaleX(.04); opacity: .3; filter: blur(5px); } 50%, 85% { transform: scaleX(1); opacity: 1; filter: blur(2px); } 100% { transform: scaleX(1); opacity: 0; filter: blur(4px); } }
+@keyframes shimmer { to { background-position: -100% 0; } }
 .reply .w { opacity: 0; filter: blur(7px); }
 .reply .w.on { opacity: 1; filter: none; transition: opacity 260ms ease, filter 320ms ease; }
-@media (prefers-reduced-motion: reduce) { .typing i, .typing b { animation: none; } .reply .w { opacity: 1; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .typing i { animation: soft-pulse 1.8s ease-in-out infinite; } .run-card:has(.typing) { animation: none; } .reply .w { opacity: 1; filter: none; } }

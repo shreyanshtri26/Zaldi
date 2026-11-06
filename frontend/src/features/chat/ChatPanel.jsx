@@ -149,7 +149,7 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, addingId, onO
                 m.role === "user"
                   ? <div key={i} className="turn user"><div className="bubble">{m.text}</div></div>
                   : <Reply key={i} message={m} onAdd={onAdd} addingId={addingId} onOpenCart={onOpenCart} />)}
-              {busy && <div className="turn"><BotAvatar active /><AgentWorking /></div>}
+              {busy && <div className="turn"><div className="av-col"><BotAvatar active /><span>{settings.brand_name || "Zaldi"}</span></div><AgentWorking /></div>}
               <div ref={end} />
             </div>
           )}
