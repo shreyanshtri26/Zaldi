@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { postToHost } from "../../shared/embed.js";
 import { addToCart, getCart, sendChat, setCartQuantity } from "../../api/client.js";
 import AppShell from "../../shared/components/AppShell.jsx";
 import Icon from "../../shared/components/Icon.jsx";
@@ -86,7 +87,7 @@ function ChatScreen() {
 
   async function add(product) {
     setAdding(product.id);
-    try { setCart(await addToCart(product.id)); toast(`Added ${product.product_name}`); }
+    try { setCart(await addToCart(product.id)); toast(`Added ${product.product_name}`); postToHost("add-to-cart", { id: product.id, name: product.product_name, price: product.price }); }
     catch (e) { toast(e.message, "bad"); }
     finally { setAdding(null); }
   }

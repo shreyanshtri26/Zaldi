@@ -2,7 +2,7 @@
 from flask import Blueprint, g, jsonify, request
 
 from zaldi import stores
-from zaldi.api.auth import server_admin_required
+from zaldi.api.auth import admin_required, server_admin_required
 from zaldi.api.ratelimit import rate_limited
 from zaldi.services import accounts
 from zaldi.errors import ValidationError
@@ -82,3 +82,17 @@ signup_bp = Blueprint("signup", __name__)
 def signup():
     body = request.get_json(silent=True) or {}
     return jsonify(accounts.signup(body.get("email", ""), body.get("password", ""), body.get("store", ""), body.get("name", ""))), 201
+
+
+@bp.get("/embed")
+@admin_required
+def embed_info():
+    """What the owner pastes into their website, plus the websites currently allowed to show the assistant."""
+    from zaldi.services import site_config
+
+    host = request.host_url.rstrip("/")
+    slug = stores.slug()
+    store_attr = "" if slug == stores.DEFAULT else f' data-store="{slug}"'
+    origins = [o.strip() for o in site_config.get_settings()["embed_origins"].split(",") if o.strip()]
+    return jsonify(store=slug, host=host, allowed_origins=origins, snippet=f'<script src="{host}/widget.js"{store_attr} async></script>',
+                   ready=bool(origins) or slug == stores.DEFAULT)

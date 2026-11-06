@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import { login as apiLogin } from "../../api/client.js";
+import { accountLogin, login as apiLogin, setStore, signupStore } from "../../api/client.js";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -15,9 +15,19 @@ export function AuthProvider({ children }) {
     try { sessionStorage.setItem("zaldi_admin", candidate); } catch {}
     setToken(candidate);
   }
+  async function loginAccount(email, password) {
+    const account = await accountLogin(email, password);
+    setStore(account.store === "default" ? "" : account.store); // the owner works in their own store
+    await login(account.token);
+  }
+  async function signup(body) {
+    const made = await signupStore(body);
+    setStore(made.store.slug);
+    await login(made.token);
+  }
   function logout() {
     try { sessionStorage.removeItem("zaldi_admin"); } catch {}
     setToken("");
   }
-  return <AuthContext.Provider value={{ token, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ token, login, loginAccount, signup, logout }}>{children}</AuthContext.Provider>;
 }

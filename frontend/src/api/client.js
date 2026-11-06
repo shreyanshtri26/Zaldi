@@ -1,3 +1,5 @@
+import { getPage } from "../shared/embed.js";
+
 // Anonymous shopper id: ties the cart, preferences and checkout to this browser.
 export function sessionId() {
   try {
@@ -7,11 +9,22 @@ export function sessionId() {
   } catch { return (sessionId.fallback ||= crypto.randomUUID()); }
 }
 
+// The store this browser is working with: from ?store=slug (the embedded widget) or the owner's sign-in.
+export function storeSlug() {
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("store");
+    if (fromUrl) sessionStorage.setItem("zaldi_store", fromUrl);
+    return sessionStorage.getItem("zaldi_store") || "";
+  } catch { return ""; }
+}
+export function setStore(slug) { try { slug ? sessionStorage.setItem("zaldi_store", slug) : sessionStorage.removeItem("zaldi_store"); } catch {} }
+
 async function request(path, { method = "GET", body, token, form } = {}) {
   const res = await fetch(`/api${path}`, {
     method,
     headers: {
       "X-Session-Id": sessionId(),
+      ...(storeSlug() ? { "X-Store": storeSlug() } : {}),
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { "X-Admin-Token": token } : {}),
     },
@@ -24,7 +37,7 @@ async function request(path, { method = "GET", body, token, form } = {}) {
 }
 
 export function sendChat(message, image, history) {
-  if (!image) return request("/chat", { method: "POST", body: { message, history } });
+  if (!image) return request("/chat", { method: "POST", body: { message, history, page: getPage() || undefined } });
   const form = new FormData();
   form.append("message", message);
   form.append("image", image);
@@ -34,6 +47,9 @@ export function sendChat(message, image, history) {
 // --- Shopping: cart, preferences, checkout handshake ---
 export const sendFeedback = (chat_id, rating) => request("/feedback", { method: "POST", body: { chat_id, rating } });
 export const getMetrics = (token, days = 7) => request(`/admin/metrics?days=${days}`, { token });
+export const accountLogin = (email, password) => request("/admin/account-login", { method: "POST", body: { email, password } });
+export const signupStore = (body) => request("/signup", { method: "POST", body });
+export const getEmbed = (token) => request("/admin/embed", { token });
 export const getCart = () => request("/cart");
 export const addToCart = (product_id, quantity = 1) => request("/cart/items", { method: "POST", body: { product_id, quantity } });
 export const setCartQuantity = (id, quantity) => request(`/cart/items/${id}`, { method: "PUT", body: { quantity } });

@@ -23,7 +23,7 @@ QUOTA_HINTS = ("RESOURCE_EXHAUSTED", "429", "quota", "rate limit", "rate_limit")
 @rate_limited("RATE_LIMIT_CHAT")
 def post_chat():
     sid = session_id()
-    image, history = None, None
+    image, history, page = None, None, None
     if request.files.get("image"):
         upload = request.files["image"]
         image = (upload.read(), upload.mimetype)
@@ -31,12 +31,13 @@ def post_chat():
     else:
         body = request.get_json(silent=True) or {}
         message, history = (body.get("message") or "").strip(), body.get("history")
+        page = body.get("page")
     if not message and not image:
         raise ValidationError("message is required")
     from zaldi.services.chat_service import handle_query  # lazy: pulls in the LLM stack
 
     try:
-        return jsonify(handle_query(message, sid, image, history))
+        return jsonify(handle_query(message, sid, image, history, page=page))
     except ValidationError:
         raise
     except Exception as exc:  # LLM or network failures: log the detail, show the customer a plain "try again" message

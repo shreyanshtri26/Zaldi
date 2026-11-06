@@ -27,12 +27,16 @@ SETTINGS = {
     "bar_width": ("normal", 6),
     "bar_shape": ("pill", 7),
     "photo_button": ("show", 4),
+    "embed_origins": ("", 600),  # websites allowed to show the assistant in a frame, comma-separated (https://shop.example)
 }
 
 _CHOICES = {"font_family": {"default", "serif", "system", "mono"}, "cards_align": {"left", "center", "right"},
             "cards_position": {"above", "below"}, "bar_position": {"center", "bottom", "top"},
             "bar_width": {"narrow", "normal", "wide"}, "bar_shape": {"pill", "rounded", "square"},
             "photo_button": {"show", "hide"}}
+
+
+ORIGIN = re.compile(r"https?://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:\d{1,5})?", re.I)
 
 
 def defaults() -> dict[str, str]:
@@ -58,6 +62,10 @@ def update_settings(changes: dict) -> dict[str, str]:
             raise ValidationError(f"{key} must look like #8FC8EB")
         if value and key == "home_categories_max" and not (value.isdigit() and 1 <= int(value) <= 60):
             raise ValidationError("home_categories_max must be 1 to 60")
+        if value and key == "embed_origins":
+            origins = [o.strip() for o in value.split(",") if o.strip()]
+            if len(origins) > 10 or not all(ORIGIN.fullmatch(o) for o in origins):
+                raise ValidationError("embed_origins: list up to 10 websites like https://shop.example, separated by commas (no paths)")
         if value and key == "font_size" and not (value.isdigit() and 12 <= int(value) <= 20):
             raise ValidationError("font_size must be 12 to 20")
         if value and key in _CHOICES and value not in _CHOICES[key]:
