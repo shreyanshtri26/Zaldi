@@ -29,7 +29,7 @@ def test_init_db_is_idempotent(temp_db):
     first = len(content_repo.list_rows("products"))
     init_db()
     assert len(content_repo.list_rows("products")) == first
-    assert len(content_repo.list_rows("quick_actions")) == 4
+    assert len(content_repo.list_rows("quick_actions")) == 2  # Payment, Returns (categories come from the store)
 
 
 def test_concurrent_first_boots_seed_once(tmp_path):

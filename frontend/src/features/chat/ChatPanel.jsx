@@ -6,11 +6,9 @@ import Orb from "../../shared/components/Orb.jsx";
 import { useSiteConfig } from "../../shared/context/SiteConfigContext.jsx";
 import useLenis from "../../shared/hooks/useLenis.js";
 import { AgentCompleted, AgentWorking } from "./AgentStatus.jsx";
-import CategoryChips, { norm } from "./CategoryChips.jsx";
 import AdminPrompt from "./AdminPrompt.jsx";
 import ProductCards from "./ProductCards.jsx";
 import Typed from "./Typed.jsx";
-import useCategories from "./useCategories.js";
 
 function Reply({ message, onAdd, onSetQty, cartQty, addingId, onOpenCart, onSend, showReplies }) {
   const [copied, setCopied] = useState(false);
@@ -90,7 +88,6 @@ function Composer({ busy, onSend, onListening, placeholder, boxRef, photo = true
 // Empty state: composer sits in the middle of the canvas with suggestion chips. Once a chat starts it docks to the bottom.
 export default function ChatPanel({ messages, busy, onSend, onAdd, onSetQty, cartQty, addingId, onOpenCart }) {
   const { settings, quickActions } = useSiteConfig();
-  const { categories, shown } = useCategories();
   const box = useRef(null);
   const wrapper = useRef(null);
   const end = useRef(null);
@@ -130,16 +127,12 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, onSetQty, car
       {pos !== "top" && <div className="hint">Enter to send · Shift+Enter for a new line</div>}
     </div>
   );
-  // Category chips come from the connected store; the admin's quick actions become a separate "Help" row (minus any that repeat a category).
-  const known = new Set(categories.map((c) => norm(c.name)));
-  const help = quickActions.filter((q) => !known.has(norm(q.title)));
-  // "Shop by category" is a hover button on the same line as the admin's help shortcuts (Payment, Returns...).
   const chips = (
-    <CategoryChips categories={categories} shown={shown} onPick={(name) => onSend(`Show me ${name}`)}>
-      {help.map(({ id, icon, title, message }) => (
+    <div className="chips help-line">
+      {quickActions.map(({ id, icon, title, message }) => (
         <button key={id} className="chip" onClick={() => onSend(message)}><Icon name={icon} size={15} />{title}</button>
       ))}
-    </CategoryChips>
+    </div>
   );
 
   return (

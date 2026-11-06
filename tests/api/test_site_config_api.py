@@ -43,7 +43,7 @@ def test_quick_actions_crud_order_and_visibility(client):
     new_id = created.get_json()["id"]
 
     titles = [a["title"] for a in client.get("/api/site-config").get_json()["quick_actions"]]
-    assert titles[0] == "Offers" and len(titles) == 5  # position 0 sorts first
+    assert titles[0] == "Offers" and len(titles) == 3  # position 0 sorts first
 
     client.put(f"/api/quick_actions/{new_id}", json={"active": 0}, headers=ADMIN_HEADERS)
     assert "Offers" not in [a["title"] for a in client.get("/api/site-config").get_json()["quick_actions"]]
