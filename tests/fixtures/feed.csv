@@ -1,0 +1,7 @@
+id,title,description,link,image_link,price,availability,brand,product_type,color
+K1,Cotton Block Print Kurta,Soft cotton kurta with block print,https://shop.test/k1,https://shop.test/k1.jpg,"1,299.00 INR",in stock,Jaipur Prints,Kurtas,Blue
+S1,Banarasi Silk Saree,Pure silk saree with zari,https://shop.test/s1,https://shop.test/s1.jpg,6499.00 INR,in stock,Banaras Weaves,Sarees,Red
+S2,Georgette Party Saree,Light georgette saree,https://shop.test/s2,https://shop.test/s2.jpg,2599 INR,out of stock,Fab Weaves,Sarees,Green
+J1,Leather Jutti,Handmade jutti,https://shop.test/j1,https://shop.test/j1.jpg,899 INR,in stock,Kolhapur Craft,Footwear,Brown
+BAD1,,No title here,https://shop.test/bad,,500 INR,in stock,,,
+BAD2,Priceless Item,Free?,https://shop.test/bad2,,,in stock,,,

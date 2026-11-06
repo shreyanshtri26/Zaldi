@@ -50,7 +50,7 @@ def test_a_blank_secret_keeps_the_saved_one_and_a_blank_setting_resets(client):
 
 
 @pytest.mark.parametrize("payload", [
-    {"connector": "amazon"},                                          # not a known connector
+    {"connector": "magento"},                                          # not a known connector
     {"woocommerce_url": "http://insecure.example"},                    # https only
     {"shopify_domain": "evil.example.com"},                            # must be a myshopify.com domain
     {"nope": "x"}, {"connector": 5}, {"woocommerce_key": "k" * 500},
@@ -69,7 +69,8 @@ def test_connection_test_reports_success_without_leaking_anything(client, monkey
     monkeypatch.setattr(EscuelaStore, "_all", lambda self: ROWS)
     put(client, connector="escuelajs", escuelajs_url="https://api.escuelajs.co/api/v1")
     out = client.post("/api/admin/store/test", headers=ADMIN_HEADERS).get_json()
-    assert out == {"ok": True, "store": "escuelajs", "found": 1, "sample": "Test Dress"}
+    assert (out["ok"], out["store"], out["found"], out["sample"], out["level"]) == (True, "escuelajs", 1, "Test Dress", "catalogue")
+    assert {c["name"] for c in out["checks"]} >= {"Store answers", "Products found", "Prices are valid"}
 
 
 def test_connection_test_explains_a_misconfigured_store_in_plain_words(client):

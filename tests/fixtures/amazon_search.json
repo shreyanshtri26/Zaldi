@@ -1,0 +1,105 @@
+{
+ "searchResult": {
+  "items": [
+   {
+    "asin": "B0KURTA001",
+    "detailPageUrl": "https://www.amazon.in/dp/B0KURTA001?tag=zaldi-21",
+    "itemInfo": {
+     "title": {
+      "displayValue": "Cotton Straight Kurta for Women"
+     },
+     "byLineInfo": {
+      "brand": {
+       "displayValue": "Jaipur Prints"
+      }
+     },
+     "features": {
+      "displayValues": [
+       "100% cotton",
+       "Machine washable",
+       "Regular fit"
+      ]
+     }
+    },
+    "images": {
+     "primary": {
+      "large": {
+       "url": "https://m.media-amazon.com/images/I/kurta1.jpg"
+      }
+     }
+    },
+    "offersV2": {
+     "listings": [
+      {
+       "price": {
+        "money": {
+         "amount": 799.0,
+         "currency": "INR"
+        }
+       }
+      }
+     ]
+    }
+   },
+   {
+    "asin": "B0SAREE002",
+    "detailPageUrl": "https://www.amazon.in/dp/B0SAREE002?tag=zaldi-21",
+    "itemInfo": {
+     "title": {
+      "displayValue": "Banarasi Silk Saree with Blouse Piece"
+     },
+     "byLineInfo": {
+      "brand": {
+       "displayValue": "Kanchi Looms"
+      }
+     }
+    },
+    "images": {
+     "primary": {
+      "large": {
+       "url": "https://m.media-amazon.com/images/I/saree2.jpg"
+      }
+     }
+    },
+    "offersV2": {
+     "listings": [
+      {
+       "price": {
+        "amount": 3499.0,
+        "currency": "INR"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "ASIN": "B0OLDSTYLE3",
+    "DetailPageURL": "https://www.amazon.in/dp/B0OLDSTYLE3?tag=zaldi-21",
+    "ItemInfo": {
+     "Title": {
+      "DisplayValue": "Printed Cotton Dupatta"
+     }
+    },
+    "Offers": {
+     "Listings": [
+      {
+       "Price": {
+        "Amount": 349.0,
+        "Currency": "INR"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "asin": "B0NOPRICE4",
+    "detailPageUrl": "https://www.amazon.in/dp/B0NOPRICE4",
+    "itemInfo": {
+     "title": {
+      "displayValue": "Item without an offer"
+     }
+    }
+   }
+  ]
+ }
+}

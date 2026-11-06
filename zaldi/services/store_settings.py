@@ -11,14 +11,19 @@ from zaldi.db import override_repo
 from zaldi.errors import ValidationError
 
 PREFIX = "store."
-CONNECTORS = ("local", "woocommerce", "shopify", "escuelajs")
+CONNECTORS = ("local", "woocommerce", "shopify", "escuelajs", "feed", "rest", "links", "amazon", "flipkart")
 MAX_LENGTH = 200
+LONG = {"rest_config": 4000, "link_urls": 6000}  # fields that hold a mapping or a list of links
 # setting -> (config attribute holding the environment value, is it a secret)
 FIELDS = {
     "connector": ("STORE_CONNECTOR", False),
     "woocommerce_url": ("WOOCOMMERCE_URL", False), "woocommerce_key": ("WOOCOMMERCE_KEY", True), "woocommerce_secret": ("WOOCOMMERCE_SECRET", True),
     "shopify_domain": ("SHOPIFY_DOMAIN", False), "shopify_token": ("SHOPIFY_STOREFRONT_TOKEN", True), "shopify_version": ("SHOPIFY_API_VERSION", False),
     "escuelajs_url": ("ESCUELAJS_URL", False),
+    "feed_url": ("FEED_URL", False), "feed_label": ("FEED_LABEL", False), "rest_config": ("REST_CONFIG", True), "link_urls": ("LINK_URLS", False),
+    "amazon_credential_id": ("AMAZON_CREDENTIAL_ID", True), "amazon_credential_secret": ("AMAZON_CREDENTIAL_SECRET", True),
+    "amazon_partner_tag": ("AMAZON_PARTNER_TAG", False), "amazon_token_url": ("AMAZON_TOKEN_URL", False), "amazon_marketplace": ("AMAZON_MARKETPLACE", False),
+    "flipkart_affiliate_id": ("FLIPKART_AFFILIATE_ID", False), "flipkart_token": ("FLIPKART_TOKEN", True),
 }
 SECRETS = {k for k, (_, secret) in FIELDS.items() if secret}
 
@@ -46,11 +51,22 @@ def public_view() -> dict:
 
 
 def _check(key: str, value: str) -> None:
-    if len(value) > MAX_LENGTH:
+    if len(value) > LONG.get(key, MAX_LENGTH):
         raise ValidationError(f"{key} is too long")
     if key == "connector" and value not in CONNECTORS:
         raise ValidationError(f"connector must be one of: {', '.join(CONNECTORS)}")
-    if key in ("woocommerce_url", "escuelajs_url") and not value.startswith("https://"):
+    if key == "rest_config":
+        import json
+
+        from zaldi.connectors.rest import validate
+
+        try:
+            validate(json.loads(value))
+        except ValueError as exc:
+            raise ValidationError(f"rest_config: {exc}") from None
+    if key == "link_urls" and not all(u.startswith("https://") for u in value.split()):
+        raise ValidationError("every product link must start with https://")
+    if key in ("woocommerce_url", "escuelajs_url", "feed_url", "amazon_token_url") and not value.startswith("https://"):
         raise ValidationError(f"{key} must start with https://")
     if key == "shopify_domain" and not re.fullmatch(r"[a-z0-9][a-z0-9-]*\.myshopify\.com", value, re.I):
         raise ValidationError("shopify_domain must look like your-store.myshopify.com")
@@ -90,11 +106,10 @@ def _reload() -> None:
 def test_connection() -> dict:
     """Try the configured store with one harmless search. Never echoes a key or URL back."""
     from zaldi.connectors import build_connector
+    from zaldi.services import onboarding
 
     try:
-        store = build_connector(effective())
-        found = store.search_products("admin-test", "", limit=1)["products"]  # no search words: any product proves the store answers
-        return {"ok": True, "store": store.name, "found": len(found), "sample": found[0]["product_name"] if found else None}
+        return onboarding.check(build_connector(effective()))
     except ValueError as exc:  # missing or malformed settings: safe to show, they name settings and never contain secrets
         return {"ok": False, "message": str(exc)}
     except ValidationError as exc:

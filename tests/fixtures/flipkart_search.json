@@ -1,0 +1,61 @@
+{
+ "products": [
+  {
+   "productBaseInfoV1": {
+    "productId": "SRIFKURTA1",
+    "title": "Chikankari Cotton Kurta",
+    "productDescription": "Hand embroidered straight kurta",
+    "imageUrls": {
+     "200x200": "https://rukminim2.flixcart.com/s/200/kurta.jpeg",
+     "800x800": "https://rukminim2.flixcart.com/s/800/kurta.jpeg"
+    },
+    "maximumRetailPrice": {
+     "amount": 1999,
+     "currency": "INR"
+    },
+    "flipkartSellingPrice": {
+     "amount": 1299,
+     "currency": "INR"
+    },
+    "productUrl": "https://dl.flipkart.com/dl/chikankari-kurta/p/itmkurta1?pid=SRIFKURTA1&affid=zaldi",
+    "productBrand": "Lucknowi Loom",
+    "inStock": true,
+    "categoryPath": "[[{\"title\": \"Clothing\"}, {\"title\": \"Kurtas\"}]]"
+   }
+  },
+  {
+   "productBaseInfoV1": {
+    "productId": "SAREEFK2",
+    "title": "Kanjivaram Silk Saree",
+    "imageUrls": {
+     "400x400": "https://rukminim2.flixcart.com/s/400/saree.jpeg"
+    },
+    "maximumRetailPrice": {
+     "amount": 8999,
+     "currency": "INR"
+    },
+    "flipkartSpecialPrice": {
+     "amount": 6499,
+     "currency": "INR"
+    },
+    "productUrl": "https://dl.flipkart.com/dl/kanjivaram/p/itmsaree2",
+    "productBrand": "Kanchi Looms",
+    "inStock": false,
+    "categoryPath": "Clothing>Sarees"
+   }
+  },
+  {
+   "productBaseInfo": {
+    "productAttributes": {
+     "title": "Old Style Jutti",
+     "productUrl": "https://dl.flipkart.com/dl/jutti/p/itmjutti3",
+     "sellingPrice": {
+      "amount": 599,
+      "currency": "INR"
+     }
+    }
+   },
+   "productId": "x"
+  }
+ ]
+}
