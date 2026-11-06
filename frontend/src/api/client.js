@@ -32,6 +32,8 @@ export function sendChat(message, image, history) {
 }
 
 // --- Shopping: cart, preferences, checkout handshake ---
+export const sendFeedback = (chat_id, rating) => request("/feedback", { method: "POST", body: { chat_id, rating } });
+export const getMetrics = (token, days = 7) => request(`/admin/metrics?days=${days}`, { token });
 export const getCart = () => request("/cart");
 export const addToCart = (product_id, quantity = 1) => request("/cart/items", { method: "POST", body: { product_id, quantity } });
 export const setCartQuantity = (id, quantity) => request(`/cart/items/${id}`, { method: "PUT", body: { quantity } });

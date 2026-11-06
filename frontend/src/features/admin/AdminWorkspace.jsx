@@ -8,13 +8,14 @@ import Skeleton from "../../shared/components/Skeleton.jsx";
 
 import ChatsView from "./ChatsView.jsx";
 import ContentView from "./content/ContentView.jsx";
+import MetricsView from "./MetricsView.jsx";
 import Dashboard from "./Dashboard.jsx";
 import PoliciesView from "./PoliciesView.jsx";
 import ProductsView from "./ProductsView.jsx";
 import SearchDialog from "./SearchDialog.jsx";
 
 // [view id, label, icon name]
-const NAV_ITEMS = [["overview", "Overview", "dash"], ["products", "Products", "box"], ["policies", "Policies", "doc"], ["chats", "Chats", "msgs"], ["content", "Content", "sliders"]];
+const NAV_ITEMS = [["overview", "Overview", "dash"], ["products", "Products", "box"], ["policies", "Policies", "doc"], ["chats", "Chats", "msgs"], ["metrics", "Metrics", "dash"], ["content", "Content", "sliders"]];
 const viewFromHash = () => {
   const hash = window.location.hash.slice(1);
   return NAV_ITEMS.some(([id]) => id === hash) ? hash : "overview";
@@ -74,6 +75,7 @@ export default function AdminWorkspace() {
         {view === "products" && <ProductsView key={presetQuery} initialQuery={presetQuery} />}
         {view === "policies" && <PoliciesView key={presetQuery} initialQuery={presetQuery} />}
         {view === "chats" && <ChatsView chats={stats?.recent_chats || []} />}
+        {view === "metrics" && <MetricsView />}
         {view === "content" && <ContentView />}
         </div>
       </div>

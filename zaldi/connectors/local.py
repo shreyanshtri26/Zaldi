@@ -1,12 +1,14 @@
 """The built-in store: the SQLite catalogue, the FAISS/lexical search, the policy index and the session cart."""
 from dataclasses import replace
 
-from zaldi.connectors.base import CART, CHECKOUT, POLICIES, PREFERENCES, SEARCH, sort_intent
+from zaldi import stores
+from zaldi.ai.resilience import ttl_cache
+from zaldi.connectors.base import CART, CHECKOUT, ORDERS, POLICIES, PREFERENCES, SEARCH, sort_intent
 from zaldi.db import connect
 from zaldi.errors import ValidationError
 from zaldi.search.extract import extract_filters, merge_defaults
 from zaldi.search.hybrid import search
-from zaldi.services import cart, preferences
+from zaldi.services import cart, preferences, returns
 
 CARD_FIELDS = ("id", "product_name", "brand", "category", "color", "size", "material", "price", "stock_quantity",
                "image_url", "description")
@@ -26,9 +28,16 @@ def _pid(product_id) -> int:
         raise ValidationError("that product does not exist") from None
 
 
+@ttl_cache(300)
+def _policies(store: str, query: str, k: int) -> list[str]:  # an embedding call per question is the costly part: remember answers for five minutes
+    from zaldi.ai.tools.policy_search import search_policies
+
+    return search_policies(query, k=k)
+
+
 class LocalStore:
     name = "local"
-    capabilities = frozenset({SEARCH, POLICIES, CART, PREFERENCES, CHECKOUT})
+    capabilities = frozenset({SEARCH, POLICIES, CART, PREFERENCES, ORDERS, CHECKOUT})
 
     def search_products(self, session_id: str, query: str, filters: dict | None = None, limit: int = 6) -> dict:
         found = merge_defaults(extract_filters(query), preferences.preference_filters(session_id))
@@ -71,9 +80,7 @@ class LocalStore:
         return sorted(out, key=lambda c: (-c["count"], c["name"]))  # most stocked first
 
     def search_policies(self, query: str, k: int = 3) -> list[str]:
-        from zaldi.ai.tools.policy_search import search_policies
-
-        return search_policies(query, k=k)
+        return _policies(stores.slug(), query, k)
 
     def cart_view(self, session_id: str) -> dict:
         return cart.get_cart(session_id)
@@ -88,6 +95,12 @@ class LocalStore:
         current = preferences.get_preferences(session_id)
         current.update({k: v for k, v in changes.items() if v not in (None, "")})
         return preferences.save_preferences(session_id, current)
+
+    def order_status(self, session_id: str) -> list[dict]:
+        return returns.list_orders(session_id)
+
+    def request_return(self, session_id: str, order_id: str, reason: str) -> dict:
+        return returns.stage_return(session_id, order_id, reason)
 
     def start_checkout(self, session_id: str) -> dict:
         c = cart.get_cart(session_id)

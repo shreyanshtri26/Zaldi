@@ -22,12 +22,61 @@ CREATE TABLE IF NOT EXISTS policies (
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Registry of stores on this server (lives in the default store's database). See zaldi/stores.py.
+CREATE TABLE IF NOT EXISTS stores (
+    slug       TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'live')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Store owner accounts (default database). `store` is a slug from `stores`, or 'default'.
+CREATE TABLE IF NOT EXISTS admin_users (
+    email         TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    store         TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('owner', 'viewer')),
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS chat_logs (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     query      TEXT NOT NULL,
     response   TEXT,
     route      TEXT,
     steps      TEXT,  -- JSON list of the agent's tool steps (null for the fixed pipeline)
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    -- latency_ms, input_tokens, output_tokens, cost_usd, model, variant, checked: added by MIGRATIONS (see connection.py)
+);
+
+-- Thumbs up/down on an answer (rating 1 or -1). Feeds the metrics page and the eval harvest.
+CREATE TABLE IF NOT EXISTS feedback (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id    INTEGER NOT NULL REFERENCES chat_logs(id) ON DELETE CASCADE,
+    rating     INTEGER NOT NULL CHECK (rating IN (-1, 1)),
+    comment    TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Every tool call the agent made, for every shopper: who (session), what, with which arguments, and what came of it.
+CREATE TABLE IF NOT EXISTS audit_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    tool       TEXT NOT NULL,
+    args       TEXT,
+    ok         INTEGER NOT NULL,
+    detail     TEXT,
+    ms         INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- A return the agent staged. Nothing is final until the shopper confirms it (see services/returns.py).
+CREATE TABLE IF NOT EXISTS returns (
+    id         TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    order_id   TEXT NOT NULL,
+    reason     TEXT NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'cancelled')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -111,5 +111,7 @@ html { scroll-behavior: smooth; }
 .help-line { justify-content: center; margin-top: 26px; }
 @media (prefers-reduced-motion: reduce) { .cats-reveal, .cats-trigger svg { transition: none; } }
 
-.admin-pass { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; max-width: 340px; } .admin-pass .input { flex: 1; min-width: 160px; } .admin-pass .form-error { flex-basis: 100%; margin: 0; }
+.admin-pass { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; max-width: 340px; } .admin-pass .pw-field { position: relative; flex: 1; min-width: 160px; display: flex; } .admin-pass .pw-field .input { width: 100%; padding-right: 40px; } .admin-pass .pw-field .icon-btn { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); } .admin-pass .form-error { flex-basis: 100%; margin: 0; }
 .admin-ok { margin: 10px 0 0; font-size: 13px; color: var(--accent); }
+
+.icon-btn.on { color: var(--accent); }

@@ -16,6 +16,9 @@ def temp_db(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "ADMIN_TOKEN", ADMIN_TOKEN)
     monkeypatch.setattr(config, "RATE_LIMIT_CHAT", 0)  # limits are tested explicitly
     monkeypatch.setattr(config, "RATE_LIMIT_LOGIN", 0)
+    from zaldi.connectors.local import _policies
+
+    _policies.cache_clear()  # cached answers belong to the previous test's database
     return tmp_path
 
 

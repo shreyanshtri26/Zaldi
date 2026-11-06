@@ -20,7 +20,8 @@ _INJECTION = [re.compile(p, re.I) for p in (
     r"ignore (?:all |any |the )?(?:previous|prior|above|earlier|your)\b.*\b(?:instruction|prompt|rule)s?",
     r"disregard (?:all |any |the )?(?:previous|prior|above|your)?.*\b(?:instruction|prompt|rule)s?",
     r"forget (?:all |everything |your )?(?:previous |prior )?(?:instruction|rule|prompt)s?",
-    r"(?:reveal|show|print|repeat|tell me|leak) (?:me )?(?:your |the )?(?:system|hidden|initial|original) (?:prompt|instruction|message)s?",
+    r"forget (?:all |everything )(?:that )?(?:you (?:were|have been|are) (?:told|given)|i said|above)",
+    r"(?:reveal|show|print|repeat|tell me|leak) (?:me )?(?:your |the )?(?:(?:system|hidden|initial|original|secret) ){1,2}(?:prompt|instruction|message)s?",
     r"what (?:is|are) your (?:system|initial) (?:prompt|instruction)s?",
     r"you are (?:now )?(?:dan|in developer mode|no longer|an? unrestricted)",
     r"\b(?:jailbreak|developer mode|do anything now)\b",
@@ -30,6 +31,35 @@ _INJECTION = [re.compile(p, re.I) for p in (
     r"pichle (?:saare |sabhi )?(?:instructions?|niyam) (?:bhool|ignore)",
     r"(?:set|change|update) (?:the )?price (?:of|to)\b.*\b(?:0|zero|free)\b",
 )]
+
+
+# Text that arrives inside tool results (product descriptions, reviews, policy pages) is data, but a hostile store or seller
+# can write instructions into it. These patterns are checked on top of the shopper-input ones above.
+_DATA_INJECTION = [re.compile(p, re.I) for p in (
+    r"\b(?:you must|you should now|you will now|from now on|new instructions?|updated instructions?|important:? (?:to )?(?:ai|assistant|model))\b",
+    r"\b(?:assistant|ai|chatbot|model|bot)[,:]\s*(?:please \s*)?(?:ignore|disregard|add|call|send|reveal|tell|say|respond|put)\b",
+    r"\bif you are an? (?:ai|assistant|model|bot|llm)\b",
+    r"\b(?:call|use|run|invoke) (?:the )?[a-z_]+ (?:tool|function)\b",
+    r"\b(?:add|put) (?:this|it|these|\d+ of these) (?:to|in|into) (?:the |your |their )?cart\b",
+    r"\btell (?:every|each|all|the) (?:customers?|shoppers?|users?)\b",
+    r"\bsystem prompt\b|^\s*(?:system|assistant)\s*:",
+)]
+NEUTRALIZED = "[text removed: it looked like instructions, not product information]"
+
+
+def looks_like_instructions(text: str) -> bool:
+    return is_prompt_injection(text) or any(p.search(text) for p in _DATA_INJECTION)
+
+
+def neutralize(data):
+    """Walk tool output and replace any string that reads like an instruction to the model. Numbers and ids are untouched."""
+    if isinstance(data, str):
+        return NEUTRALIZED if looks_like_instructions(data) else data
+    if isinstance(data, list):
+        return [neutralize(x) for x in data]
+    if isinstance(data, dict):
+        return {k: neutralize(v) for k, v in data.items()}
+    return data
 
 
 def redact_pii(text: str) -> tuple[str, list[str]]:

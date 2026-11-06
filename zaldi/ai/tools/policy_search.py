@@ -10,7 +10,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from zaldi import config
+from zaldi import stores
 from zaldi.ai.models import embedding_id, get_embeddings
 from zaldi.db import content_repo
 
@@ -22,9 +22,10 @@ GENERIC = {"what", "your", "policy", "policie", "with", "about", "does", "have",
 
 def get_vectorstore() -> FAISS:
     """Load the FAISS index, or build it from the policies table (it is deleted whenever policies change)."""
-    index_dir = str(config.POLICY_INDEX_DIR)
-    marker = config.POLICY_INDEX_DIR / "embedding.id"
-    if (config.POLICY_INDEX_DIR / "index.faiss").exists() and marker.exists() and marker.read_text() == embedding_id():
+    folder = stores.policy_index_dir()
+    index_dir = str(folder)
+    marker = folder / "embedding.id"
+    if (folder / "index.faiss").exists() and marker.exists() and marker.read_text() == embedding_id():
         return FAISS.load_local(index_dir, get_embeddings(), allow_dangerous_deserialization=True)
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=120)
     chunks = [Document(page_content=f"{p['title']}\n{part}", metadata={"title": p["title"]})

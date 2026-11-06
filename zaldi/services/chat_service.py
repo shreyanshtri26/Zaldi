@@ -8,18 +8,22 @@ the delivery address is never taken in chat (the UI collects it in a separate fo
 """
 import logging
 import re
+import time
 from datetime import date
 from functools import lru_cache
 
 from zaldi import config
 from zaldi.ai import guardrails
+from zaldi.ai import resilience, routing
 from zaldi.ai.models import get_fallback_llm, get_llm
 from zaldi.ai.prompts import get_prompt
 from zaldi.ai.router import Route, SemanticRouter
+from zaldi import experiments
 from zaldi.db import chat_log_repo
+from zaldi.errors import ValidationError
 from zaldi.search.extract import extract_filters, merge_defaults
 from zaldi.search.hybrid import search
-from zaldi.services import cart, preferences
+from zaldi.services import cart, preferences, returns
 from zaldi.services.cart_chat import describe_cart, handle_cart_message
 
 log = logging.getLogger(__name__)
@@ -225,8 +229,11 @@ def _connected_store_fallback(text: str, session_id: str) -> dict:
     return {"response": "Here is what I found:\n" + "\n".join(lines) + _insight(products), "products": products, "steps": []}
 
 
-def _try_agent(text: str, session_id: str, history: list[tuple[str, str]] | None = None) -> dict | None:
-    """Run the tool-using agent; ``None`` means "use the normal pipeline" (disabled, model down, or an empty answer)."""
+def _try_agent(text: str, session_id: str, history: list[tuple[str, str]] | None = None, on_step=None) -> dict | None:
+    """Run the tool-using agent; ``None`` means "use the normal pipeline" (disabled, model down, or an empty answer).
+
+    Models are tried in order: a cheap one for simple messages (if configured), the main one, then the optional fallback.
+    A rate limit or outage is retried with backoff first; a reply the self-check could not repair moves on to the next model."""
     if not config.AGENT_ENABLED:
         return None
     if not _spend_agent_run():
@@ -235,24 +242,35 @@ def _try_agent(text: str, session_id: str, history: list[tuple[str, str]] | None
         from zaldi.agent.loop import run_agent
         from zaldi.connectors import get_connector
 
-        failure = None
-        for llm in (get_llm(), get_fallback_llm()):  # the second model only runs if the first one fails
-            if llm is None:
-                continue
+        variant, prompt_name = experiments.pick(session_id)
+        failure, weak = None, None
+        for llm in routing.candidates(text, get_llm, get_fallback_llm):
             try:
-                result = run_agent(text, session_id, get_connector(), llm, history=history)
-                return result if result["response"] else None
+                result = resilience.retry(lambda: run_agent(text, session_id, get_connector(), llm, history=history,
+                                                            on_step=on_step, prompt_name=prompt_name))
             except Exception as exc:
                 failure = exc
-                log.warning("agent model failed (%s); trying the fallback model if there is one", type(exc).__name__)
+                log.warning("agent model failed (%s); trying the next model if there is one", type(exc).__name__)
+                continue
+            result["variant"] = variant
+            if not result["response"]:
+                continue
+            if result.get("checked") == "fallback":  # this model kept quoting amounts no tool returned: let a stronger one try
+                weak = weak or result
+                continue
+            return result
+        if weak:
+            return weak
         raise failure or RuntimeError("no model available")
     except Exception:
         log.exception("agent failed; using the deterministic pipeline")
         return None
 
 
-def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, str] | None = None, history: list | None = None) -> dict:
-    """``image`` is ``(bytes, mime_type)`` for an uploaded photo; ``history`` the last few ``{role, text}`` turns from the browser."""
+def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, str] | None = None, history: list | None = None, on_step=None) -> dict:
+    """``image`` is ``(bytes, mime_type)`` for an uploaded photo; ``history`` the last few ``{role, text}`` turns from the browser.
+    ``on_step`` receives each agent tool step as it finishes (used by the streaming endpoint)."""
+    started = time.perf_counter()
     try:
         safe, pii = guardrails.check_input(query or "")
     except guardrails.Blocked as blocked:
@@ -269,6 +287,15 @@ def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, 
             tags = ""
     text = f"{safe} {tags}".strip()
 
+    if (confirm := returns.CONFIRM.match(text)):  # the shopper's own tap on "Confirm return ...": matched by code, never by the model
+        try:
+            done = returns.confirm_return(session_id, confirm.group(1).lower())
+            reply = f"Your return {done['return_id']} is confirmed. We will email pickup details."
+        except ValidationError as exc:
+            reply = f"I couldn't confirm that return: {exc}"
+        chat_id = chat_log_repo.log_chat(text, reply, "return", meta={"latency_ms": round((time.perf_counter() - started) * 1000)})
+        return {"response": reply, "type": "return", "chat_id": chat_id}
+
     route = Route.PRODUCTS if (image and tags) else get_router().guide(text)
     if route is Route.CHITCHAT and (POLICY_WORDS.search(text) or not extract_filters(text).is_empty()):
         route = Route.PRODUCTS  # a shopping entity or policy word beats a weak small-talk match
@@ -277,7 +304,7 @@ def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, 
 
     external = get_connector().name != "local"  # the fixed pipeline only knows this app's own catalogue
     wants_agent = external or (MULTI_STEP.search(text) and route is not Route.CHITCHAT)
-    agent_result = _try_agent(text, session_id, _clean_history(history)) if wants_agent else None
+    agent_result = _try_agent(text, session_id, _clean_history(history), on_step) if wants_agent else None
     if agent_result is not None:
         result, label = agent_result, "agent"
     elif external:
@@ -300,5 +327,8 @@ def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, 
     secrets = [get_prompt("agent_system"), get_prompt("chitchat")]
     result["response"] = guardrails.scrub_output(result["response"], secrets)
     result.update(type=label or route.value, pii_redacted=pii, image_tags=tags or None)
-    chat_log_repo.log_chat(text, result["response"], label or route.value, result.get("steps"))
+    usage = result.pop("usage", None) or {}
+    meta = {"latency_ms": round((time.perf_counter() - started) * 1000), "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),
+            "cost_usd": usage.get("cost_usd"), "model": usage.get("model"), "variant": result.pop("variant", None), "checked": result.pop("checked", None)}
+    result["chat_id"] = chat_log_repo.log_chat(text, result["response"], label or route.value, result.get("steps"), meta)
     return result

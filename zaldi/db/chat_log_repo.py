@@ -4,10 +4,16 @@ import json
 from zaldi.db.connection import connect
 
 
-def log_chat(query: str, response: str, route: str, steps: list[dict] | None = None) -> None:
+def log_chat(query: str, response: str, route: str, steps: list[dict] | None = None, meta: dict | None = None) -> int:
+    """Save one exchange and return its id. ``meta`` carries latency_ms, input/output tokens, cost_usd, model, variant, checked."""
+    meta = meta or {}
     with connect() as conn:
-        conn.execute("INSERT INTO chat_logs (query, response, route, steps) VALUES (?, ?, ?, ?)",
-                     (query, response, route, json.dumps(steps) if steps else None))
+        cur = conn.execute(
+            "INSERT INTO chat_logs (query, response, route, steps, latency_ms, input_tokens, output_tokens, cost_usd, model, variant, checked) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (query, response, route, json.dumps(steps) if steps else None, meta.get("latency_ms"), meta.get("input_tokens"),
+             meta.get("output_tokens"), meta.get("cost_usd"), meta.get("model"), meta.get("variant"), meta.get("checked")))
+        return cur.lastrowid
 
 
 def recent_logs(limit: int = 50) -> list[dict]:

@@ -3,7 +3,7 @@ import shutil
 import sqlite3
 from dataclasses import dataclass, field
 
-from zaldi import config
+from zaldi import stores
 from zaldi.db.connection import connect
 from zaldi.errors import ValidationError
 
@@ -146,4 +146,7 @@ def delete_row(table: str, row_id: int) -> bool:
 def _after_write(table: str) -> None:
     """Policy text feeds the FAISS index: drop it so the next search rebuilds from the database."""
     if table == "policies":
-        shutil.rmtree(config.POLICY_INDEX_DIR, ignore_errors=True)
+        shutil.rmtree(stores.policy_index_dir(), ignore_errors=True)
+        from zaldi.connectors.local import _policies
+
+        _policies.cache_clear()  # and the five-minute answer cache, so an edit shows at once

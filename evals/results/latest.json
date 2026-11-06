@@ -1,0 +1,163 @@
+{
+  "retrieval": {
+    "queries": 134,
+    "k": 6,
+    "methods": {
+      "keyword only": {
+        "overall": {
+          "hit": 0.933,
+          "mrr": 0.891,
+          "ndcg": 0.899,
+          "recall": 0.929
+        },
+        "by_kind": {
+          "attribute": {
+            "hit": 1.0,
+            "mrr": 0.983,
+            "ndcg": 0.984,
+            "recall": 0.995
+          },
+          "budget": {
+            "hit": 1.0,
+            "mrr": 0.867,
+            "ndcg": 0.9,
+            "recall": 1.0
+          },
+          "variant": {
+            "hit": 0.0,
+            "mrr": 0.0,
+            "ndcg": 0.0,
+            "recall": 0.0
+          }
+        }
+      },
+      "meaning only": {
+        "overall": {
+          "hit": 0.948,
+          "mrr": 0.881,
+          "ndcg": 0.888,
+          "recall": 0.941
+        },
+        "by_kind": {
+          "attribute": {
+            "hit": 0.989,
+            "mrr": 0.951,
+            "ndcg": 0.956,
+            "recall": 0.989
+          },
+          "budget": {
+            "hit": 1.0,
+            "mrr": 0.884,
+            "ndcg": 0.891,
+            "recall": 0.983
+          },
+          "variant": {
+            "hit": 0.333,
+            "mrr": 0.13,
+            "ndcg": 0.167,
+            "recall": 0.289
+          }
+        }
+      },
+      "hybrid (RRF)": {
+        "overall": {
+          "hit": 0.955,
+          "mrr": 0.912,
+          "ndcg": 0.918,
+          "recall": 0.952
+        },
+        "by_kind": {
+          "attribute": {
+            "hit": 1.0,
+            "mrr": 0.965,
+            "ndcg": 0.973,
+            "recall": 1.0
+          },
+          "budget": {
+            "hit": 1.0,
+            "mrr": 0.978,
+            "ndcg": 0.969,
+            "recall": 1.0
+          },
+          "variant": {
+            "hit": 0.333,
+            "mrr": 0.13,
+            "ndcg": 0.167,
+            "recall": 0.289
+          }
+        }
+      },
+      "full pipeline": {
+        "overall": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "ndcg": 1.0,
+          "recall": 1.0
+        },
+        "by_kind": {
+          "attribute": {
+            "hit": 1.0,
+            "mrr": 1.0,
+            "ndcg": 1.0,
+            "recall": 1.0
+          },
+          "budget": {
+            "hit": 1.0,
+            "mrr": 1.0,
+            "ndcg": 1.0,
+            "recall": 1.0
+          },
+          "variant": {
+            "hit": 1.0,
+            "mrr": 1.0,
+            "ndcg": 1.0,
+            "recall": 1.0
+          }
+        }
+      }
+    }
+  },
+  "redteam": {
+    "input": {
+      "total": 57,
+      "blocked": 57,
+      "by_category": {
+        "override": [
+          24,
+          24
+        ],
+        "extraction": [
+          10,
+          10
+        ],
+        "jailbreak": [
+          12,
+          12
+        ],
+        "price": [
+          5,
+          5
+        ],
+        "format": [
+          6,
+          6
+        ]
+      },
+      "missed": [],
+      "benign_total": 40,
+      "false_positives": []
+    },
+    "indirect": {
+      "total": 15,
+      "neutralized": 15,
+      "missed": [],
+      "safe_total": 7,
+      "safe_damaged": []
+    },
+    "tools": {
+      "total": 6,
+      "stopped": 6,
+      "failures": []
+    }
+  }
+}

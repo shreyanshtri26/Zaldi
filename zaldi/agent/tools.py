@@ -4,6 +4,8 @@
 returns plain data and turns a store ``ValidationError`` (out of stock, unknown product) into ``{"error": ...}`` so the model
 can recover instead of crashing the run. Each call is recorded in ``Run.steps`` for the chat and the admin trace.
 """
+import json
+import logging
 import time
 
 from typing import Literal
@@ -11,9 +13,13 @@ from typing import Literal
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
-from zaldi.connectors.base import CART, CHECKOUT, POLICIES, PREFERENCES, SEARCH, StoreConnector
+from zaldi.agent import verify
+from zaldi.ai import guardrails
+from zaldi.connectors.base import CART, CHECKOUT, ORDERS, POLICIES, PREFERENCES, SEARCH, StoreConnector
 from zaldi.errors import ValidationError
 
+log = logging.getLogger(__name__)
+READ_ONLY = {"search_products", "get_product", "search_policies", "view_cart", "order_status"}  # safe to run side by side
 POLICY_EXCERPT_LIMIT = 600
 MAX_CARDS = 6
 
@@ -27,6 +33,7 @@ class Run:
         self.cart: dict | None = None
         self.action: str | None = None
         self.ask: dict | None = None  # a question for the shopper, with tappable answers
+        self.known: set[float] = set()  # every number a tool returned: the only amounts a reply may quote
 
 
 class SearchArgs(BaseModel):
@@ -73,6 +80,32 @@ def _slim(card: dict) -> dict:
             "rating": card.get("rating"), "reviews": card.get("rating_count"), "in_stock": "unknown" if card["stock_quantity"] is None else card["stock_quantity"], "about": card["description"]}
 
 
+def _audit(session_id: str, tool: str, args: dict, ok: bool, detail: str | None, ms: int) -> None:
+    """One row per tool call, for every shopper. Never lets a logging failure break the answer."""
+    try:
+        from zaldi.db import connect
+
+        with connect() as conn:
+            conn.execute("INSERT INTO audit_log (session_id, tool, args, ok, detail, ms) VALUES (?,?,?,?,?,?)",
+                         (session_id, tool, json.dumps(args, default=str)[:500], int(ok), (detail or "")[:200], ms))
+    except Exception:
+        log.warning("audit log write failed for %s", tool)
+
+
+def _shown_before(session_id: str) -> set[int]:
+    try:
+        from zaldi.services import cart
+
+        return set(cart.last_results(session_id))
+    except Exception:  # a connector without our cart tables simply has no earlier results
+        return set()
+
+
+class OrderArgs(BaseModel):
+    order_id: str = Field(description="Id of one of the shopper's orders, from order_status")
+    reason: str = Field(description="Why they want to return it, in a few words")
+
+
 def build_tools(connector: StoreConnector, session_id: str, run: Run) -> list[StructuredTool]:
     caps = connector.capabilities
 
@@ -85,9 +118,12 @@ def build_tools(connector: StoreConnector, session_id: str, run: Run) -> list[St
                     out = fn(**kwargs)
                 except ValidationError as exc:
                     out = {"error": str(exc)}
-                run.steps.append({"tool": name, "summary": out["error"] if "error" in out else summarize(out, kwargs),
-                                  "ok": "error" not in out, "ms": round((time.perf_counter() - started) * 1000)})
-                return out
+                ms = round((time.perf_counter() - started) * 1000)
+                ok = "error" not in out
+                run.steps.append({"tool": name, "summary": out["error"] if not ok else summarize(out, kwargs), "ok": ok, "ms": ms})
+                verify.note(run.known, out)
+                _audit(session_id, name, kwargs, ok, out.get("error") if not ok else None, ms)
+                return guardrails.neutralize(out)  # what the model reads is data, never instructions
             return call
         return wrap
 
@@ -149,6 +185,9 @@ def build_tools(connector: StoreConnector, session_id: str, run: Run) -> list[St
 
         @traced("add_to_cart", lambda out, a: f"Added {name_of(a['product_id'])} to the cart")
         def add_to_cart(product_id: int, quantity: int = 1) -> dict:
+            # Least privilege, enforced in code and not only in the prompt: only a product this shopper was actually shown.
+            if product_id not in run.products and product_id not in _shown_before(session_id):
+                raise ValidationError("that product was not in any search result; search for it first")
             run.cart = connector.cart_add(session_id, product_id, quantity)
             return run.cart
 
@@ -168,6 +207,22 @@ def build_tools(connector: StoreConnector, session_id: str, run: Run) -> list[St
 
         add(remember_preference, "remember_preference",
             "Save a lasting preference the shopper states about themselves ('I wear M', 'my budget is 3000'). Never guess one.", PreferenceArgs)
+
+    if ORDERS in caps:
+        @traced("order_status", lambda out, a: f"Found {len(out['orders'])} orders")
+        def order_status() -> dict:
+            return {"orders": connector.order_status(session_id)}
+
+        @traced("request_return", lambda out, a: f"Staged a return for order {a['order_id']} (waiting for the shopper)")
+        def request_return(order_id: str, reason: str) -> dict:
+            staged = connector.request_return(session_id, order_id, reason)
+            # Staged only. The shopper makes it final by tapping the button, which is matched by code, never by the model.
+            run.ask = {"question": f"Start a return for order {staged['order_id']} ({staged['reason']})? Nothing happens until you confirm.",
+                       "options": [f"Confirm return {staged['return_id']}", "Keep my order"]}
+            return {"status": "waiting for the shopper to confirm; stop here"}
+
+        add(order_status, "order_status", "List the shopper's recent orders with their status, items and totals.", NoArgs)
+        add(request_return, "request_return", "Stage a return for one confirmed order. The shopper must confirm before it is final.", OrderArgs)
 
     if CHECKOUT in caps:
         @traced("start_checkout", lambda out, a: "Prepared checkout for the shopper to confirm")

@@ -1,0 +1,4 @@
+{
+  "retrieval": {"hybrid (RRF)": {"hit": 0.93, "mrr": 0.88, "ndcg": 0.89}, "full pipeline": {"hit": 0.97, "mrr": 0.95, "ndcg": 0.95}},
+  "redteam": {"input_block_rate": 0.95, "benign_false_positives": 0, "indirect_neutralized_rate": 0.9, "indirect_safe_damaged": 0, "tool_stop_rate": 1.0}
+}

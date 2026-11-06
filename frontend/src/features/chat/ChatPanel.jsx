@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { sendFeedback } from "../../api/client.js";
 import Accent from "../../shared/components/Accent.jsx";
 import BotAvatar from "../../shared/components/BotAvatar.jsx";
 import Icon from "../../shared/components/Icon.jsx";
@@ -12,11 +13,16 @@ import Typed from "./Typed.jsx";
 
 function Reply({ message, onAdd, onSetQty, cartQty, addingId, onOpenCart, onSend, showReplies }) {
   const [copied, setCopied] = useState(false);
+  const [rated, setRated] = useState(0);
   // A reply that has just arrived types itself in; older messages (history, reload) appear at once.
   const [animate] = useState(() => !message.error && Boolean(message.at) && Date.now() - message.at < 4000);
   const [done, setDone] = useState(!animate);
   const copy = async () => {
     try { await navigator.clipboard.writeText(message.text); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch {}
+  };
+  const rate = (rating) => {
+    setRated(rating);
+    sendFeedback(message.chatId, rating).catch(() => setRated(0));
   };
   return (
     <div className="turn">
@@ -36,6 +42,12 @@ function Reply({ message, onAdd, onSetQty, cartQty, addingId, onOpenCart, onSend
         {done && !message.error && (
           <div className="reply-actions">
             <button className="icon-btn" onClick={copy} aria-label="Copy reply" title={copied ? "Copied" : "Copy"}><Icon name="copy" size={16} /></button>
+            {message.chatId && (
+              <>
+                <button className={`icon-btn${rated === 1 ? " on" : ""}`} onClick={() => rate(1)} aria-pressed={rated === 1} aria-label="Good answer" title="Good answer"><Icon name="thumbUp" size={16} /></button>
+                <button className={`icon-btn${rated === -1 ? " on" : ""}`} onClick={() => rate(-1)} aria-pressed={rated === -1} aria-label="Bad answer" title="Bad answer"><Icon name="thumbDown" size={16} /></button>
+              </>
+            )}
           </div>
         )}
       </div>

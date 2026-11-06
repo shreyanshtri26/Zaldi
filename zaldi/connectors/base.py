@@ -12,7 +12,18 @@ SEARCH = "search"        # search_products, get_product
 POLICIES = "policies"    # search_policies
 CART = "cart"            # view_cart, add_to_cart, remove_from_cart
 PREFERENCES = "preferences"  # save_preference
+ORDERS = "orders"      # order_status, request_return (a return is only staged; the shopper confirms it)
 CHECKOUT = "checkout"    # start_checkout (always ends in a human confirmation or a hand-off link, never a silent payment)
+
+
+LEVELS = ("catalogue", "cart", "orders")
+
+
+def capability_level(capabilities) -> str:
+    """How much a shopper can do through this store: ``catalogue`` (search, compare, link out), ``cart`` (edit a cart) or ``orders`` (returns and checkout)."""
+    if ORDERS in capabilities or CHECKOUT in capabilities:
+        return "orders"
+    return "cart" if CART in capabilities else "catalogue"
 
 
 _SORTS = [  # (intent, wording). "cheaper" is deliberately absent: it compares two products, it does not ask for an ordering.
@@ -55,6 +66,10 @@ class StoreConnector(Protocol):
 
     def save_preference(self, session_id: str, changes: dict) -> dict:
         """Merge ``changes`` (size, max_price, gender, brand) into the shopper's saved preferences."""
+
+    def order_status(self, session_id: str) -> list[dict]: ...
+
+    def request_return(self, session_id: str, order_id: str, reason: str) -> dict: ...
 
     def start_checkout(self, session_id: str) -> dict:
         """``{"cart": ..., "action": "collect_address"}`` or a ``{"checkout_url": ...}`` hand-off."""

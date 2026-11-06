@@ -9,7 +9,7 @@ import json
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
-from zaldi import config
+from zaldi import config, stores
 from zaldi.ai.models import embedding_id, get_embeddings
 from zaldi.db import content_repo
 
@@ -32,7 +32,7 @@ def _fingerprint(docs: list[Document]) -> str:
 def build_index(docs: list[Document] | None = None) -> tuple[FAISS | None, int]:
     """Embed the catalogue and persist it. Returns (store, product count); store is None for an empty catalogue."""
     docs = product_documents() if docs is None else docs
-    index_dir = config.PRODUCT_INDEX_DIR
+    index_dir = stores.product_index_dir()
     if not docs:
         return None, 0
     store = FAISS.from_documents(docs, get_embeddings())
@@ -46,13 +46,13 @@ def get_index() -> FAISS | None:
     docs = product_documents()
     if not docs:
         return None
-    meta = config.PRODUCT_INDEX_DIR / "fingerprint.json"
+    meta = stores.product_index_dir() / "fingerprint.json"
     try:
         fresh = json.loads(meta.read_text())["fingerprint"] == _fingerprint(docs)
     except (OSError, ValueError, KeyError):
         fresh = False
     if fresh:
-        return FAISS.load_local(str(config.PRODUCT_INDEX_DIR), get_embeddings(), allow_dangerous_deserialization=True)
+        return FAISS.load_local(str(stores.product_index_dir()), get_embeddings(), allow_dangerous_deserialization=True)
     return build_index(docs)[0]
 
 

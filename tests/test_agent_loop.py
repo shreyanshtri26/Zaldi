@@ -55,7 +55,7 @@ def test_search_then_add_then_answer_in_three_steps():
 def test_a_tool_error_is_given_back_to_the_model_not_raised():
     llm = scripted(call("add_to_cart", {"product_id": 999999}), AIMessage(content="I couldn't find that product."))
     r = run_agent("add product 999999", S, LocalStore(), llm)
-    assert r["steps"][0]["ok"] is False and "does not exist" in r["steps"][0]["summary"]
+    assert r["steps"][0]["ok"] is False and "not in any search result" in r["steps"][0]["summary"]
     fed_back = [m for m in llm.seen[1] if isinstance(m, ToolMessage)]
     assert fed_back and "error" in fed_back[0].content
     assert cart.get_cart(S)["items"] == []

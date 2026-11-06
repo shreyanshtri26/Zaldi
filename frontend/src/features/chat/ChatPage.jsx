@@ -73,7 +73,7 @@ function ChatScreen() {
       const r = await sendChat(text, image, history);
       if (r.cart) setCart(r.cart);
       append(chatId, {
-        role: "bot", text: r.response, route: r.type, ms: Date.now() - startedAt, at: Date.now(), steps: r.steps, quickReplies: r.quick_replies,
+        role: "bot", text: r.response, route: r.type, ms: Date.now() - startedAt, at: Date.now(), steps: r.steps, quickReplies: r.quick_replies, chatId: r.chat_id,
         products: r.products, relaxed: r.relaxed, action: r.action, cartCount: r.cart?.item_count,
       });
       if (r.action === "collect_address") setPanel("address");

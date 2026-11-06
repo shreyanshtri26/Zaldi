@@ -1,4 +1,5 @@
 """Command line: ``python -m zaldi`` (terminal chat) and ``python -m zaldi ingest`` (rebuild the product index),
+``python -m zaldi evals [retrieval|redteam|agent|all] [--write]``,
 and ``python -m zaldi import-images <folder>`` (link photos named after product codes)."""
 import sys
 
@@ -24,6 +25,10 @@ def main() -> None:
         from zaldi.search.ingest import ingest
 
         print(f"Indexed {ingest()} products.")
+    elif sys.argv[1:2] == ["evals"]:
+        from zaldi.evals.runner import main as run_evals
+
+        sys.exit(run_evals(sys.argv[2:]))
     elif sys.argv[1:2] == ["import-images"]:
         from pathlib import Path
 

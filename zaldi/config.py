@@ -41,6 +41,21 @@ WOOCOMMERCE_SECRET = os.getenv("WOOCOMMERCE_SECRET", "")
 SHOPIFY_DOMAIN = os.getenv("SHOPIFY_DOMAIN", "")  # your-store.myshopify.com
 SHOPIFY_STOREFRONT_TOKEN = os.getenv("SHOPIFY_STOREFRONT_TOKEN", "")  # public, read-only Storefront API token
 SHOPIFY_API_VERSION = os.getenv("SHOPIFY_API_VERSION", "2025-07")
+ALLOW_SIGNUP = os.getenv("ALLOW_SIGNUP") == "1"  # let anyone create their own store and owner account (off by default)
+LLM_MODEL_CHEAP = os.getenv("LLM_MODEL_CHEAP", "")  # cheaper model for simple messages; empty = always use LLM_MODEL
+LLM_RETRIES = int(os.getenv("LLM_RETRIES", "2"))  # extra attempts on a rate limit or outage, with exponential backoff
+LLM_RETRY_BASE = float(os.getenv("LLM_RETRY_BASE", "0.8"))  # seconds before the first retry
+FEED_URL = os.getenv("FEED_URL", "")  # CSV/JSON product feed (https link)
+FEED_LABEL = os.getenv("FEED_LABEL", "")
+REST_CONFIG = os.getenv("REST_CONFIG", "")  # JSON mapping for a custom store API (see zaldi/connectors/rest.py)
+LINK_URLS = os.getenv("LINK_URLS", "")  # product page links, whitespace separated
+AMAZON_CREDENTIAL_ID = os.getenv("AMAZON_CREDENTIAL_ID", "")  # Amazon Creators API (Associates)
+AMAZON_CREDENTIAL_SECRET = os.getenv("AMAZON_CREDENTIAL_SECRET", "")
+AMAZON_PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG", "")
+AMAZON_TOKEN_URL = os.getenv("AMAZON_TOKEN_URL", "")
+AMAZON_MARKETPLACE = os.getenv("AMAZON_MARKETPLACE", "www.amazon.in")
+FLIPKART_AFFILIATE_ID = os.getenv("FLIPKART_AFFILIATE_ID", "")
+FLIPKART_TOKEN = os.getenv("FLIPKART_TOKEN", "")
 AGENT_DAILY_RUNS = int(os.getenv("AGENT_DAILY_RUNS", "500"))  # agent runs per day per server process (cost cap); 0 = unlimited
 AGENT_ENABLED = os.getenv("AGENT_ENABLED", "1") != "0"  # tool-using agent for multi-step requests; 0 = deterministic pipeline only
 AGENT_MAX_STEPS = int(os.getenv("AGENT_MAX_STEPS", "5"))  # tool-call rounds before the agent must answer

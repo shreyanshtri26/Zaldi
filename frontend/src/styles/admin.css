@@ -75,3 +75,6 @@ td .sub { color: var(--muted); font-size: 12px; } td.num, th.num { text-align: r
 .photo { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; }
 .photo-preview { width: 96px; height: 96px; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface-2); border: 1px solid var(--border); }
 .photo-preview.empty { display: grid; place-items: center; text-align: center; font-size: 12px; color: var(--muted); padding: 6px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.stat small { color: var(--muted); }

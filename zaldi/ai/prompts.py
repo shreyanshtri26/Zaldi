@@ -9,6 +9,7 @@ DEFAULT_PROMPTS = {
         "using the same script they wrote in (Roman script in, Roman script out). "
         "Use short plain text lines or '-' bullets; never markdown tables or bold."
     ),
+    "agent_system_b": "",  # empty = no experiment; fill it to test a second wording of the assistant prompt on half of the shoppers
     "chitchat": (
         "You are a friendly assistant for Zaldi, an Indian online ethnic-fashion store.\n"
         "Chat casually and warmly, and gently steer the conversation to fashion where natural "
@@ -20,6 +21,7 @@ DEFAULT_PROMPTS = {
 
 PROMPT_LABELS = {
     "agent_system": "Product and policy assistant",
+    "agent_system_b": "Experiment: variant B of the assistant prompt (leave empty to switch the experiment off)",
     "chitchat": "Friendly chat",
 }
 

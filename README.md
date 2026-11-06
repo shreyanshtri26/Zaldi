@@ -31,6 +31,7 @@ MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.or
 -   [AI and product discovery](#ai-and-product-discovery)
 -   [Cart and checkout workflow](#cart-and-checkout-workflow)
 -   [Security and privacy](#security-and-privacy)
+-   [Quality, safety and cost measurement](#quality-safety-and-cost-measurement)
 -   [Technology stack](#technology-stack)
 -   [System architecture](#system-architecture)
 -   [Design system](#design-system)
@@ -329,6 +330,68 @@ Security checks are applied at multiple points in the request lifecycle.
 For production use, deploy behind HTTPS and configure a long, randomly
 generated admin token. The current admin authentication model uses one
 shared token; see [Current limitations](#current-limitations).
+
+## Quality, safety and cost measurement
+
+Every claim below is backed by a command you can run and a test that fails the build if it stops being true.
+
+### Evaluation harness
+
+``` bash
+python -m zaldi evals all --write     # offline: product search + attack resistance, same numbers on every machine
+python -m zaldi evals agent --write   # live: runs 30 cases through the real model (needs a key and quota)
+python -m zaldi evals harvest         # turns thumbs-down and self-repaired chats into new test cases
+```
+
+Results are saved to `evals/RESULTS.md`. The minimum scores live in `evals/thresholds.json`, and `tests/test_evals.py` fails CI
+when a change pushes search quality or attack resistance below them.
+
+| Suite | What it measures |
+|---|---|
+| Product search | 134 queries generated from the catalogue (plain attributes, Hinglish and spelling variants, budgets), scored with hit rate, MRR, nDCG and recall for keyword-only, meaning-only, hybrid and the full pipeline, so each half of the hybrid is shown to earn its place |
+| Attack resistance | 57 hostile messages (override, prompt extraction, jailbreak, price tricks, chat-template tokens), 40 ordinary messages that must not be refused, 15 instructions hidden in store text, and 6 tool-layer attacks run for real |
+| Agent (live) | 30 cases in `evals/agent_cases.jsonl`: did it pick the right tools, avoid forbidden ones, and quote only prices the tools returned; plus latency, tokens and cost |
+
+Honest limits: search labels are rule-made from the catalogue's attributes (they test ranking consistency, not shopper taste), and
+the attack lists were written together with the rules, so they are a regression gate and not a claim of general robustness. The
+live agent suite has not produced numbers yet because the free model quota was exhausted when it was first run; the harness
+refuses to report a run where the model failed on more than a quarter of the cases.
+
+### What the agent does to stay correct
+
+-   **Answer check:** every reply is checked against what the tools returned. A price no tool returned (or a sum or difference of
+    two that did) triggers one repair attempt, then a plain summary of the tool data. The outcome (`ok`, `repaired`, `fallback`)
+    is saved with the chat.
+-   **Parallel tools:** read-only calls in one step (search, policy, cart view, orders) run side by side; anything that changes
+    state runs one at a time.
+-   **Model choice:** set `LLM_MODEL_CHEAP` and simple messages go to the cheaper model first; hard ones (comparisons, returns,
+    long requests) go straight to `LLM_MODEL`, and a reply the self-check could not repair is retried on the stronger model.
+-   **Retries:** rate limits and brief outages are retried with exponential backoff (`LLM_RETRIES`, `LLM_RETRY_BASE`) before the
+    next model or the plain-text fallback is used.
+-   **Orders and returns:** the agent can list the shopper's orders and *stage* a return. It becomes final only when the shopper
+    taps "Confirm return xxxxxxxx", which code (not the model) matches to the same session; other sessions, repeats and
+    unconfirmed orders are refused.
+-   **Live steps:** `POST /api/chat/stream` sends each tool step as a server-sent event, then the answer.
+
+### Safety, enforced in code
+
+-   `add_to_cart` accepts only a product this shopper was shown; quantities are bounded by the tool schema; no tool accepts a
+    session id (it is bound on the server), so one shopper cannot reach another's cart.
+-   Text that arrives inside tool results (product descriptions, reviews, policy pages) is scanned and replaced with a notice
+    when it reads like an instruction to the model.
+-   Every tool call is written to `audit_log` (session, tool, arguments, result, milliseconds).
+
+### Metrics, feedback and experiments
+
+-   Each chat records latency, input and output tokens, estimated cost (prices in `zaldi/telemetry.py`), the model used, the
+    prompt version and the answer-check outcome. **Admin -> Metrics** shows speed (median and slowest 5%), cost per agent chat,
+    tool failure rates, answer-check counts and thumbs up/down by prompt version.
+-   Shoppers can rate any answer with thumbs up or down (`POST /api/feedback`, one rating per answer, the latest wins).
+-   **Prompt experiment:** write a second wording under Admin -> Content -> Prompts -> "Experiment: variant B". Half of the
+    sessions (a stable split by session) get it, and the Metrics page compares thumbs up by version. Leave it empty to switch the
+    experiment off.
+-   `python -m zaldi evals harvest` collects failures (thumbs down, repaired or replaced answers), removes personal data, and
+    appends them to `evals/harvested.jsonl` to be reviewed and promoted into `agent_cases.jsonl`.
 
 ## Technology stack
 
@@ -665,6 +728,13 @@ secrets in `.env` for local development and do not commit that file.
                                       process (cost cap). Default 500;
                                       `0` means unlimited.
 
+  `LLM_MODEL_CHEAP`                   Cheaper model for simple messages.
+                                      Empty means always use `LLM_MODEL`.
+
+  `LLM_RETRIES`, `LLM_RETRY_BASE`     Extra attempts (default 2) and first
+                                      wait in seconds (default 0.8) when the
+                                      model is rate limited.
+
   `LLM_FALLBACK_PROVIDER`,            Optional second model used when the
   `LLM_FALLBACK_MODEL`                first fails, for example `groq` and
                                       `openai/gpt-oss-120b`.
@@ -749,7 +819,9 @@ The application uses SQLite. The database is created on first run at
   `policies`                          Store policies and their content
 
   `chat_logs`                         Customer queries, assistant
-                                      responses, route, and timestamp
+                                      responses, route, timestamp,
+                                      latency, tokens, cost, model,
+                                      prompt version, answer check
 
   `quick_actions`                     Configurable suggestion cards for
                                       the chat interface
@@ -757,6 +829,12 @@ The application uses SQLite. The database is created on first run at
   `settings`                          Storefront setting overrides
 
   `prompts`                           Assistant prompt overrides
+
+  `feedback`                          Thumbs up/down per answer
+
+  `audit_log`                         Every agent tool call
+
+  `returns`                           Staged and confirmed returns
   -----------------------------------------------------------------------
 
 ### Product data
@@ -786,6 +864,15 @@ The following routes are exposed by the Flask application.
   -----------------------------------------------------------------------------------
   Method            Endpoint                      Access            Description
   ----------------- ----------------------------- ----------------- -----------------
+  `POST`            `/api/feedback`               Public            Rate an answer
+                                                                    (`chat_id`, `rating` 1 or -1).
+
+  `POST`            `/api/chat/stream`            Public            Like `/api/chat`, as
+                                                                    server-sent events.
+
+  `GET`             `/api/admin/metrics`          Admin             Speed, cost, tokens,
+                                                                    tool health, feedback.
+
   `POST`            `/api/chat`                   Public            Submit a customer
                                                                     message and
                                                                     receive an
@@ -941,6 +1028,12 @@ model generation is unavailable.
 -   **Chat persistence:** the API keeps no conversation. Chat history is
     stored in the browser, which sends the last six turns with each
     message; only preferences and the cart are stored per session.
+-   **Single-node storage:** SQLite plus a FAISS file keeps the app simple but limits it to one server. Moving to Postgres with
+    pgvector (for several servers and several stores) is planned and not built.
+-   **Live agent numbers:** the live evaluation harness is built and tested with a scripted model, but its first real run is
+    still to do (the free model quota was used up).
+-   **Streaming in the page:** the stream endpoint exists; the chat page still uses the normal endpoint and shows the steps
+    after the answer.
 -   **One store per server:** `STORE_CONNECTOR` is global, so serving
     several stores currently means one deployment each. Connected stores
     are read-only: shoppers buy on the store itself.

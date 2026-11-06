@@ -5,13 +5,16 @@ back to the deterministic pipeline if anything here fails. Guardrails run before
 """
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
-from zaldi import config
-from zaldi.agent.tools import Run, build_tools
+from zaldi import config, stores
+from zaldi.agent import verify
+from zaldi.agent.tools import READ_ONLY, Run, build_tools
 from zaldi.ai.prompts import get_prompt
 from zaldi.connectors.base import StoreConnector
+from zaldi.telemetry import Usage, model_name
 
 log = logging.getLogger(__name__)
 
@@ -45,8 +48,24 @@ def _call(tool, call: dict) -> dict:
         return {"error": f"invalid arguments for {call['name']}: {str(exc)[:160]}"}
 
 
+def _run_calls(by_name: dict, calls: list[dict]) -> list[dict]:
+    """Run one step's tool calls. Read-only calls run side by side; anything that changes state runs one at a time, in order."""
+    if len(calls) > 1 and all(c["name"] in READ_ONLY for c in calls):
+        with ThreadPoolExecutor(max_workers=min(4, len(calls))) as pool:
+            return list(pool.map(stores.carry(lambda c: _call(by_name.get(c["name"]), c)), calls))  # each worker must see this store
+    return [_call(by_name.get(c["name"]), c) for c in calls]
+
+
+def _plain_summary(run: Run) -> str:
+    """Last resort when a reply keeps quoting amounts no tool returned: say only what the tools did return."""
+    if run.products:
+        lines = [f"- {p['product_name']}: {p['price']} {p.get('currency', 'INR')}" for p in list(run.products.values())[:6]]
+        return "Here is what I found:" + chr(10) + chr(10).join(lines)
+    return "I could not confirm the details for that. Please try again or ask customer support."
+
+
 def run_agent(query: str, session_id: str, connector: StoreConnector, llm, max_steps: int | None = None,
-              history: list[tuple[str, str]] | None = None) -> dict:
+              history: list[tuple[str, str]] | None = None, on_step=None, system_extra: str = "", prompt_name: str = "agent_system") -> dict:
     """Answer ``query`` with tool calls. Raises on any model or tool-binding failure so the caller can fall back."""
     max_steps = max_steps or config.AGENT_MAX_STEPS
     run = Run()
@@ -57,28 +76,43 @@ def run_agent(query: str, session_id: str, connector: StoreConnector, llm, max_s
     context = "\n".join(f"{'Shopper' if role == 'user' else 'Zaldi'}: {text}" for role, text in (history or []))
     asked = (f"Earlier in this conversation (context only; it may be inaccurate, so check facts with tools):\n{context}\n\n"
              f"Shopper's new message: {query}") if context else query
-    messages = [SystemMessage(content=f"{get_prompt('agent_system')}\n\n{RULES}"), HumanMessage(content=asked)]
+    messages = [SystemMessage(content=f"{get_prompt(prompt_name)}\n\n{RULES}{system_extra}"), HumanMessage(content=asked)]
 
-    reply = None
+    usage, reply, announced = Usage(model_name(llm)), None, 0
     for _ in range(max_steps):
         ai = model.invoke(messages)
+        usage.add(ai)
         messages.append(ai)
         calls = getattr(ai, "tool_calls", None) or []
         if not calls:
             reply = ai
             break
-        for call in calls:
-            tool = by_name.get(call["name"])
-            out = _call(tool, call)
+        for call, out in zip(calls, _run_calls(by_name, calls)):
             messages.append(ToolMessage(content=json.dumps(out, default=str), tool_call_id=call["id"]))
+        while on_step and announced < len(run.steps):  # live progress for the stream endpoint
+            on_step(run.steps[announced])
+            announced += 1
         if run.ask:  # the shopper's turn: show the question and its quick replies, no further model call needed
             break
     if reply is None and not run.ask:  # step cap reached: make it answer with what it has instead of looping
         log.warning("agent hit the %d-step cap", max_steps)
         reply = llm.invoke(messages + [HumanMessage(content="Give your final answer now, using only what the tools returned.")])
+        usage.add(reply)
 
-    text = run.ask["question"] if run.ask else as_text(reply.content).strip()
-    result = {"response": text, "products": list(run.products.values()), "steps": run.steps}
+    text, checked = (run.ask["question"], "ask") if run.ask else (as_text(reply.content).strip(), "ok")
+    if not run.ask:  # self-check: a price the tools never returned is the costliest thing a shop assistant can say
+        bad = verify.unsupported(text, run.known)
+        if bad:
+            log.warning("reply quoted amounts no tool returned: %s", bad)
+            fix = llm.invoke(messages + [reply, HumanMessage(content=(
+                f"Your answer quotes amounts that no tool returned: {', '.join(f'{b:g}' for b in bad)}. Rewrite it using only "
+                "prices and numbers from the tool results above. If you do not have a figure, leave it out."))])
+            usage.add(fix)
+            text = as_text(fix.content).strip()
+            checked = "repaired" if not verify.unsupported(text, run.known) else "fallback"
+            if checked == "fallback":
+                text = _plain_summary(run)
+    result = {"response": text, "products": list(run.products.values()), "steps": run.steps, "checked": checked, "usage": usage.as_dict()}
     if run.ask and run.ask["options"]:
         result["quick_replies"] = run.ask["options"]
     if run.cart is not None:
