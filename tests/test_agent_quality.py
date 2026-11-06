@@ -212,7 +212,7 @@ def test_feedback_and_the_metrics_page(client, monkeypatch):
 
 
 def test_the_stream_endpoint_sends_each_step_then_the_answer(client, monkeypatch):
-    def fake(message, sid, image, history, on_step=None):
+    def fake(message, sid, image, history, on_step=None, page=None):
         on_step({"tool": "search_products", "summary": "Found 3 products", "ok": True, "ms": 5})
         return {"response": "Done.", "type": "agent"}
 

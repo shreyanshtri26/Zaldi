@@ -331,7 +331,8 @@ refuses to report a run where the model failed on more than a quarter of the cas
     appends them to `evals/harvested.jsonl` to be reviewed and promoted into `agent_cases.jsonl`.
 -   `LLM_MODEL_CHEAP` sends simple messages to a cheaper model first; hard ones go straight to `LLM_MODEL`, and a reply the answer check
     could not repair is retried on the stronger model.
--   `POST /api/chat/stream` sends each tool step as a server-sent event, then the answer.
+-   `POST /api/chat/stream` sends each tool step as a server-sent event, then the answer. The chat page uses it, so while an answer is
+    prepared the waiting box lists each step as it finishes ("Found 6 products for kurta"). Photo messages use the normal endpoint.
 
 ## Customer experience
 
@@ -551,8 +552,9 @@ DATABASE_URL=postgresql://user:password@your-host.neon.tech/neondb?sslmode=requi
 | `vectors`, `vector_meta` | pgvector index and fingerprints (Postgres only) |
 
 Prices are stored in INR and are GST-inclusive in the built-in catalogue. On first run the database is seeded from `data/seed/`; to start
-over on SQLite stop the app and delete `data/zaldi.db` (**this deletes all local data**). SQLite and Postgres keep separate data; there is
-no automatic copy between them.
+over on SQLite stop the app and delete `data/zaldi.db` (**this deletes all local data**). Moving an existing installation to Postgres: set `DATABASE_URL`, then run
+`python -m zaldi migrate` once. It copies every store (ids are kept and counters moved past them), refuses to run into a database that
+already has rows, never changes the SQLite files, and the search vectors rebuild on the first search.
 
 ## API reference
 
@@ -622,13 +624,12 @@ If the model is unavailable, product and policy requests still return plain-text
 ## Current limitations
 
 -   **Postgres:** the suite runs against Neon, but the hosted API has not been moved to it yet; it keeps using SQLite until `DATABASE_URL`
-    is set there. There is no automatic copy from SQLite to Postgres.
+    is set there (then run `python -m zaldi migrate` once to copy the existing data).
 -   **Live agent numbers:** the live evaluation harness is built and tested with a scripted model, but its first real run is still to do
     (the free model quota was used up).
 -   **Amazon and Flipkart:** tested against recorded responses only (see above).
 -   **Connected stores are read-only:** shoppers buy on the store itself. There is no payment gateway: the built-in checkout stops at the
     shopper's confirmation.
--   **Streaming in the page:** the stream endpoint exists; the chat page still uses the normal endpoint and shows the steps after the answer.
 -   **Chat persistence:** the API keeps no conversation; history lives in the browser (last six turns are sent).
 -   **Accounts:** no password reset or two-step sign-in yet; the server admin is still the shared `ADMIN_TOKEN`.
 -   **Prices and stock from other stores:** shown in the store's own currency; stock only when the store reports it (the Platzi demo gives

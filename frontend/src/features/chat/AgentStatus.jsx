@@ -1,12 +1,17 @@
 import Icon from "../../shared/components/Icon.jsx";
 import { routeLabel, stepsFor } from "../../shared/utils/agentSteps.js";
 
-// Compact waiting box: a title and blurred lines that "type" themselves. The API has no streaming, so there is no real
-// progress to show; a short note appears only if the reply is slow.
-export function AgentWorking() {
+// Compact waiting box: blurred lines that "type" themselves, and under them each tool step as soon as it finishes
+// (for example "Found 6 products for kurta"), so a slow answer shows real progress.
+export function AgentWorking({ steps = [] }) {
   return (
     <div className="run-card" role="status" aria-live="polite">
       <div className="typing" aria-hidden="true"><i /><i /><i /><i /></div>
+      {steps.length > 0 && (
+        <ul className="live-steps">
+          {steps.slice(-4).map((s, i) => <li key={`${s.tool}-${i}`} className={s.ok === false ? "bad" : ""}>{s.summary}</li>)}
+        </ul>
+      )}
     </div>
   );
 }

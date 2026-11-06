@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { postToHost } from "../../shared/embed.js";
-import { addToCart, getCart, sendChat, setCartQuantity } from "../../api/client.js";
+import { addToCart, getCart, sendChat, sendChatStream, setCartQuantity } from "../../api/client.js";
 import AppShell from "../../shared/components/AppShell.jsx";
 import Icon from "../../shared/components/Icon.jsx";
 import { useAuth } from "../../shared/context/AuthContext.jsx";
@@ -35,6 +35,7 @@ function History({ chats, activeId, onSelect, onRemove }) {
 
 function ChatScreen() {
   const { chats, active, activeId, select, newChat, append, remove } = useChats();
+  const [live, setLive] = useState([]);
   const [busy, setBusy] = useState(false);
   const [cart, setCart] = useState(EMPTY_CART);
   const [panel, setPanel] = useState(null); // null | "cart" | "address"
@@ -71,7 +72,8 @@ function ChatScreen() {
     try {
       // the last few turns, so follow-ups like "add the cheaper one" have something to refer to
       const history = (active?.messages || []).filter((m) => m.text && !m.error).slice(-6).map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.text }));
-      const r = await sendChat(text, image, history);
+      setLive([]);
+      const r = image ? await sendChat(text, image, history) : await sendChatStream(text, history, (step) => setLive((steps) => [...steps, step]));
       if (r.cart) setCart(r.cart);
       append(chatId, {
         role: "bot", text: r.response, route: r.type, ms: Date.now() - startedAt, at: Date.now(), steps: r.steps, quickReplies: r.quick_replies, chatId: r.chat_id,
@@ -82,6 +84,7 @@ function ChatScreen() {
       append(chatId, { role: "bot", text: e.message, error: true });
     } finally {
       setBusy(false);
+      setLive([]);
     }
   }
 
@@ -125,7 +128,7 @@ function ChatScreen() {
 
   return (
     <AppShell nav={nav} actions={actions} raised>
-      <ChatPanel messages={active?.messages || []} busy={busy} onSend={send} onAdd={add} onSetQty={setQty} cartQty={cartQty} addingId={adding} onOpenCart={setPanel} />
+      <ChatPanel messages={active?.messages || []} busy={busy} onSend={send} onAdd={add} onSetQty={setQty} cartQty={cartQty} addingId={adding} onOpenCart={setPanel} liveSteps={live} />
       {panel && <CartPanel key={panel} cart={cart} onCart={setCart} startAt={panel} onClose={() => setPanel(null)} />}
     </AppShell>
   );

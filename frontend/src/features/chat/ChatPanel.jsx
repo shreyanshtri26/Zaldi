@@ -98,7 +98,7 @@ function Composer({ busy, onSend, onListening, placeholder, boxRef, photo = true
 }
 
 // Empty state: composer sits in the middle of the canvas with suggestion chips. Once a chat starts it docks to the bottom.
-export default function ChatPanel({ messages, busy, onSend, onAdd, onSetQty, cartQty, addingId, onOpenCart }) {
+export default function ChatPanel({ messages, busy, onSend, onAdd, onSetQty, cartQty, addingId, onOpenCart, liveSteps = [] }) {
   const { settings, quickActions } = useSiteConfig();
   const box = useRef(null);
   const wrapper = useRef(null);
@@ -168,7 +168,7 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, onSetQty, car
                 m.role === "user"
                   ? <div key={i} className="turn user"><div className="bubble">{m.text}</div></div>
                   : <Reply key={i} message={m} onAdd={onAdd} onSetQty={onSetQty} cartQty={cartQty} addingId={addingId} onOpenCart={onOpenCart} onSend={onSend} showReplies={i === messages.length - 1 && !busy} />)}
-              {busy && <div className="turn"><div className="av-col"><BotAvatar active /><span>{settings.brand_name || "Zaldi"}</span></div><AgentWorking /></div>}
+              {busy && <div className="turn"><div className="av-col"><BotAvatar active /><span>{settings.brand_name || "Zaldi"}</span></div><AgentWorking steps={liveSteps} /></div>}
               <div ref={end} />
             </div>
           )}

@@ -123,7 +123,7 @@ def test_the_stream_endpoint_keeps_the_store_in_its_worker_thread(client, monkey
     stores.create_store("streamy", "Streamy")
     seen = {}
 
-    def fake(message, sid, image, history, on_step=None):
+    def fake(message, sid, image, history, on_step=None, page=None):
         seen["store"] = stores.slug()
         return {"response": "ok", "type": "agent"}
 

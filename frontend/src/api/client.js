@@ -47,6 +47,39 @@ export function sendChat(message, image, history) {
 // --- Shopping: cart, preferences, checkout handshake ---
 export const sendFeedback = (chat_id, rating) => request("/feedback", { method: "POST", body: { chat_id, rating } });
 export const getMetrics = (token, days = 7) => request(`/admin/metrics?days=${days}`, { token });
+// Like sendChat, but each tool step is reported as it finishes (onStep), then the answer is returned. Photos use sendChat.
+export async function sendChatStream(message, history, onStep) {
+  const res = await fetch("/api/chat/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Session-Id": sessionId(), ...(storeSlug() ? { "X-Store": storeSlug() } : {}) },
+    body: JSON.stringify({ message, history, page: getPage() || undefined }),
+  });
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Something went wrong. Please try again in a moment.");
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let cut;
+    while ((cut = buffer.indexOf("\n\n")) >= 0) {
+      const block = buffer.slice(0, cut);
+      buffer = buffer.slice(cut + 2);
+      const event = /^event: (.+)$/m.exec(block)?.[1];
+      const data = /^data: (.+)$/m.exec(block)?.[1];
+      if (!event || !data) continue;
+      const payload = JSON.parse(data);
+      if (event === "step") onStep?.(payload);
+      else if (event === "error") throw new Error(payload.error || "Something went wrong. Please try again in a moment.");
+      else if (event === "done") return payload;
+    }
+  }
+  throw new Error("The answer was cut off. Please try again.");
+}
 export const accountLogin = (email, password) => request("/admin/account-login", { method: "POST", body: { email, password } });
 export const signupStore = (body) => request("/signup", { method: "POST", body });
 export const getEmbed = (token) => request("/admin/embed", { token });

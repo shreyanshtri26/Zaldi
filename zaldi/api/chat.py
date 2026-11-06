@@ -51,7 +51,7 @@ def post_chat():
 def post_chat_stream():
     sid = session_id()
     body = request.get_json(silent=True) or {}
-    message, history = (body.get("message") or "").strip(), body.get("history")
+    message, history, page = (body.get("message") or "").strip(), body.get("history"), body.get("page")
     if not message:
         raise ValidationError("message is required")
     from zaldi.services.chat_service import handle_query
@@ -60,7 +60,7 @@ def post_chat_stream():
 
     def work():
         try:
-            events.put(("done", handle_query(message, sid, None, history, on_step=lambda step: events.put(("step", step)))))
+            events.put(("done", handle_query(message, sid, None, history, on_step=lambda step: events.put(("step", step)), page=page)))
         except Exception as exc:
             log.exception("streamed chat failed")
             busy = any(hint.lower() in str(exc).lower() for hint in QUOTA_HINTS)
