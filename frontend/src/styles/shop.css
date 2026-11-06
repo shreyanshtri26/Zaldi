@@ -43,8 +43,18 @@
 .prep { margin-top: 8px; }
 @media (max-width: 520px) { .address-form { grid-template-columns: 1fr; } .cart-lines li { grid-template-columns: 1fr auto; } }
 
-.prefs { display: grid; gap: 10px; padding: 14px; width: min(300px, 90vw); }
-.prefs label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.prefs { display: grid; gap: 14px; padding: 18px; width: min(380px, 92vw); border-radius: 18px; }
+.prefs-head { display: flex; gap: 12px; align-items: flex-start; }
+.prefs-head b { display: block; font-size: 15px; letter-spacing: -.01em; } .prefs-head small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.prefs-ico { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: var(--c-lime, var(--accent)); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.prefs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.prefs label { display: grid; gap: 5px; font-size: 12px; font-weight: 500; color: var(--muted); } .prefs label.wide { grid-column: 1 / -1; }
+.prefix { position: relative; display: block; } .prefix i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 12px; color: var(--muted); pointer-events: none; } .prefix .input { padding-left: 34px; }
+.prefs-foot { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border); }
+/* while the menu is open, everything under the top bar softly blurs and dims (the bar and the menu stay sharp) */
+body::before { content: ""; position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0; transition: opacity 220ms ease; background: rgba(6, 10, 8, .5); -webkit-backdrop-filter: blur(10px) saturate(.9); backdrop-filter: blur(10px) saturate(.9); }
+body:has(.prefs-menu[open])::before { opacity: 1; pointer-events: auto; }
+@media (max-width: 420px) { .prefs-grid { grid-template-columns: 1fr; } }
 
 .p-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .p-thumb .p-num { z-index: 1; }
@@ -61,3 +71,5 @@
 /* the - 1 + stepper on a product card in a reply: same control as the cart panel, sized to sit where the Add button was */
 .p-foot .qty { height: 32px; } .p-foot .qty button { width: 32px; height: 30px; color: var(--ink); cursor: pointer; } .p-foot .qty button:hover:not(:disabled) { background: var(--surface-2); }
 .p-foot .qty button:disabled { color: var(--disabled); cursor: default; } .p-foot .qty span { min-width: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.p-rating { display: inline-block; margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--accent); } .p-rating small { color: var(--muted); font-weight: 400; }

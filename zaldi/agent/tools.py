@@ -6,6 +6,8 @@ can recover instead of crashing the run. Each call is recorded in ``Run.steps`` 
 """
 import time
 
+from typing import Literal
+
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
@@ -31,6 +33,8 @@ class SearchArgs(BaseModel):
     query: str = Field(description="What the shopper wants, in their own words, e.g. 'red cotton saree'")
     max_price: int | None = Field(default=None, description="Upper budget in rupees, if the shopper gave one")
     min_price: int | None = Field(default=None, description="Lower budget in rupees, if any")
+    category: str | None = Field(default=None, description="Exact category name from the store, if the shopper named one")
+    sort: Literal["price_asc", "price_desc", "rating"] | None = Field(default=None, description="Ordering the shopper asked for: cheapest, most expensive, top rated")
 
 
 class ProductArgs(BaseModel):
@@ -66,7 +70,7 @@ def _slim(card: dict) -> dict:
     """What the model needs to compare products; images and long text stay out."""
     return {"id": card["id"], "name": card["product_name"], "brand": card["brand"], "category": card["category"],
             "color": card["color"], "sizes": card["size"], "material": card["material"], "price": card["price"], "currency": card.get("currency", "INR"),
-            "in_stock": "unknown" if card["stock_quantity"] is None else card["stock_quantity"], "about": card["description"]}
+            "rating": card.get("rating"), "reviews": card.get("rating_count"), "in_stock": "unknown" if card["stock_quantity"] is None else card["stock_quantity"], "about": card["description"]}
 
 
 def build_tools(connector: StoreConnector, session_id: str, run: Run) -> list[StructuredTool]:
@@ -111,8 +115,8 @@ def build_tools(connector: StoreConnector, session_id: str, run: Run) -> list[St
     if SEARCH in caps:
         @traced("search_products", lambda out, a: f"Found {len(out['products'])} products for \"{a['query']}\""
                 + (f" (relaxed: {', '.join(out['relaxed'])})" if out["relaxed"] else ""))
-        def search_products(query: str, max_price: int | None = None, min_price: int | None = None) -> dict:
-            found = connector.search_products(session_id, query, {"max_price": max_price, "min_price": min_price})
+        def search_products(query: str, max_price: int | None = None, min_price: int | None = None, category: str | None = None, sort: str | None = None) -> dict:
+            found = connector.search_products(session_id, query, {"max_price": max_price, "min_price": min_price, "category": category, "sort": sort})
             for card in found["products"]:
                 remember(card)
             return {"products": [_slim(c) for c in found["products"]], "relaxed": found["relaxed"]}

@@ -1,5 +1,7 @@
 import { hue, money } from "../../shared/utils/format.js";
 
+const label = (name = "") => name.charAt(0).toUpperCase() + name.slice(1);
+
 // Product results under a reply. "Add" goes straight to the cart API (the same cart the chat edits); once a product is in the cart
 // the button becomes a - 1 + stepper, so quantity can be changed right here without opening the cart.
 const MAX_LINE = 10;
@@ -16,7 +18,8 @@ export default function ProductCards({ products, onAdd, onSetQty, cartQty = {}, 
           </div>
           <div className="p-body">
             <h4>{p.product_name}</h4>
-            <p>{[p.brand, p.color].filter(Boolean).join(" · ")}</p>
+            <p>{[p.brand, p.color].filter(Boolean).join(" · ") || label(p.category)}</p>
+            {p.rating ? <span className="p-rating" aria-label={`Rated ${p.rating.toFixed(1)} out of 5${p.rating_count ? ` by ${p.rating_count} people` : ""}`}>★ {p.rating.toFixed(1)}{p.rating_count ? <small> ({p.rating_count})</small> : null}</span> : null}
             <div className="p-foot">
               <strong>{money(p.price, p.currency)}</strong>
               {p.catalogue_only ? null : p.buy_url ? (

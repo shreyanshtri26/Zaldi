@@ -183,6 +183,36 @@ def _price(card: dict) -> str:
     return f"Rs. {int(card['price']):,}" if currency == "INR" else f"${card['price']:,.2f}" if currency == "USD" else f"{card['price']} {currency}"
 
 
+def _stars(p: dict) -> str:
+    return f" · ★ {p['rating']:.1f}" + (f" ({p['rating_count']})" if p.get("rating_count") else "") if p.get("rating") else ""
+
+
+def _insight(products: list[dict]) -> str:
+    """A short comparison drawn from the results themselves: the lowest price and, where the store has ratings, the best rated."""
+    if len(products) < 2:
+        return ""
+    cheapest = min(products, key=lambda p: p["price"])
+    lines = [f"Lowest price: {cheapest['product_name']} ({_price(cheapest)})"]
+    rated = [p for p in products if p.get("rating")]
+    if rated:
+        best = max(rated, key=lambda p: (p["rating"], p.get("rating_count") or 0))
+        lines.append(f"Top rated: {best['product_name']} (★ {best['rating']:.1f})")
+    return "\n\n" + "\n".join(lines)
+
+
+def _followups(products: list[dict]) -> list[str]:
+    """Tappable next steps for a result list, in the shopper's own terms: order what they are looking at."""
+    if len(products) < 2:
+        return []
+    category = max({p["category"] for p in products if p.get("category")} or {""}, key=lambda c: sum(p["category"] == c for p in products))
+    if not category:
+        return []
+    chips = [f"Cheapest {category}"]
+    if any(p.get("rating") for p in products):
+        chips.append(f"Top rated {category}")
+    return chips
+
+
 def _connected_store_fallback(text: str, session_id: str) -> dict:
     """The model is unavailable and the shopper is on a connected store: answer from that store's own search, as plain text.
     (The fixed pipeline would answer from this app's own catalogue, which is the wrong store.)"""
@@ -191,8 +221,8 @@ def _connected_store_fallback(text: str, session_id: str) -> dict:
     products = get_connector().search_products(session_id, text)["products"]
     if not products:
         return {"response": "I couldn't find a match for that. Try a category name or a different word.", "products": [], "steps": []}
-    lines = [f"- {p['product_name']} - {_price(p)}" for p in products[:5]]
-    return {"response": "Here is what I found:\n" + "\n".join(lines), "products": products, "steps": []}
+    lines = [f"- {p['product_name']} - {_price(p)}{_stars(p)}" for p in products[:5]]
+    return {"response": "Here is what I found:\n" + "\n".join(lines) + _insight(products[:5]), "products": products, "steps": []}
 
 
 def _try_agent(text: str, session_id: str, history: list[tuple[str, str]] | None = None) -> dict | None:
@@ -261,6 +291,10 @@ def handle_query(query: str, session_id: str = "anonymous", image: tuple[bytes, 
     else:
         result = _chitchat(text)
 
+    if "quick_replies" not in result and result.get("products"):
+        result["quick_replies"] = _followups(result["products"])
+        if not result["quick_replies"]:
+            del result["quick_replies"]
     if result.get("action") == "collect_address" and "form" not in result["response"].lower():
         result["response"] = f"{result['response']}\n\n{DETAILS_PROMPT}"  # the agent path: never leave the shopper guessing what to fill in
     secrets = [get_prompt("agent_system"), get_prompt("chitchat")]

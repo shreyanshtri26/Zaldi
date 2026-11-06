@@ -4,6 +4,7 @@ platform (Shopify, WooCommerce, a marketplace affiliate feed, a CSV) means writi
 A connector declares what it can do in ``capabilities``; the agent is only given tools for those. A catalogue-only
 marketplace connector, for example, has no ``cart`` or ``checkout`` and the agent simply hands the shopper a link.
 """
+import re
 from typing import Protocol
 
 # What a connector may support. Each capability unlocks the tools named beside it (see zaldi.agent.tools).
@@ -12,6 +13,18 @@ POLICIES = "policies"    # search_policies
 CART = "cart"            # view_cart, add_to_cart, remove_from_cart
 PREFERENCES = "preferences"  # save_preference
 CHECKOUT = "checkout"    # start_checkout (always ends in a human confirmation or a hand-off link, never a silent payment)
+
+
+_SORTS = [  # (intent, wording). "cheaper" is deliberately absent: it compares two products, it does not ask for an ordering.
+    ("price_asc", re.compile(r"\b(cheapest|lowest price|least expensive|low to high|lowest priced)\b", re.I)),
+    ("price_desc", re.compile(r"\b(most expensive|costliest|highest price|high to low|highest priced|premium)\b", re.I)),
+    ("rating", re.compile(r"\b(top rated|best rated|highest rated|best reviewed|best rating|most popular)\b", re.I)),
+]
+
+
+def sort_intent(query: str) -> str | None:
+    """``price_asc``, ``price_desc`` or ``rating`` when the shopper asked for an ordering, else ``None``."""
+    return next((intent for intent, pattern in _SORTS if pattern.search(query)), None)
 
 
 def safe_url(url: str | None) -> str | None:

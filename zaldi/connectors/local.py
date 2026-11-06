@@ -1,7 +1,7 @@
 """The built-in store: the SQLite catalogue, the FAISS/lexical search, the policy index and the session cart."""
 from dataclasses import replace
 
-from zaldi.connectors.base import CART, CHECKOUT, POLICIES, PREFERENCES, SEARCH
+from zaldi.connectors.base import CART, CHECKOUT, POLICIES, PREFERENCES, SEARCH, sort_intent
 from zaldi.db import connect
 from zaldi.errors import ValidationError
 from zaldi.search.extract import extract_filters, merge_defaults
@@ -34,7 +34,12 @@ class LocalStore:
         found = merge_defaults(extract_filters(query), preferences.preference_filters(session_id))
         extra = {k: v for k, v in (filters or {}).items() if k in ("max_price", "min_price", "category") and v}
         found = replace(found, **extra)
-        rows, relaxed = search(query, found, limit=limit)
+        sort = (filters or {}).get("sort") or sort_intent(query)
+        if sort in ("price_asc", "price_desc"):  # order the whole filtered set, not just the top few by relevance
+            rows, relaxed = search(query, found, limit=50)
+            rows = sorted(rows, key=lambda r: r["price"], reverse=sort == "price_desc")[:limit]
+        else:
+            rows, relaxed = search(query, found, limit=limit)
         cart.remember_results(session_id, [r["id"] for r in rows])
         return {"products": [_card(r) for r in rows], "relaxed": relaxed}
 
