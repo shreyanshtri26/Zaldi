@@ -50,6 +50,11 @@ export const updateItem = (table, id, body, token) => request(`/${table}/${id}`,
 export const deleteItem = (table, id, token) => request(`/${table}/${id}`, { method: "DELETE", token });
 
 // --- CMS-managed content ---
+export const uploadImage = (file, token) => {
+  const form = new FormData();
+  form.append("image", file);
+  return request("/admin/upload", { method: "POST", form, token });
+};
 export const getCategories = () => request("/categories");
 export const getSiteConfig = () => request("/site-config");
 export const getAdminSettings = (token) => request("/admin/settings", { token });

@@ -32,9 +32,9 @@ STOREFRONT_URL = os.getenv("STOREFRONT_URL", "")  # checkout site the browser au
 BROWSER_CHANNEL = os.getenv("BROWSER_CHANNEL", "")  # "msedge"/"chrome" to use an installed browser instead of Playwright's
 BROWSER_NO_SANDBOX = os.getenv("BROWSER_NO_SANDBOX") == "1"  # needed for Chromium as root inside Docker
 RATE_LIMIT_CHAT = int(os.getenv("RATE_LIMIT_CHAT", "20"))  # chat messages per minute per visitor; 0 = off
-# Which store the agent works against: "local" (this app's own catalogue), "woocommerce", "shopify" or "fakestore" (read-only; link out to buy, or catalogue only).
+# Which store the agent works against: "local" (this app's own catalogue), "woocommerce", "shopify" or "escuelajs" (read-only; link out to buy, or catalogue only).
 STORE_CONNECTOR = os.getenv("STORE_CONNECTOR", "local").strip().lower()
-FAKESTORE_URL = os.getenv("FAKESTORE_URL", "https://fakestoreapi.com")  # the free demo API, no key
+ESCUELAJS_URL = os.getenv("ESCUELAJS_URL", "https://api.escuelajs.co/api/v1")  # the free Platzi demo API, no key
 WOOCOMMERCE_URL = os.getenv("WOOCOMMERCE_URL", "")  # https://your-store.com
 WOOCOMMERCE_KEY = os.getenv("WOOCOMMERCE_KEY", "")  # read-only REST API consumer key
 WOOCOMMERCE_SECRET = os.getenv("WOOCOMMERCE_SECRET", "")
@@ -56,5 +56,6 @@ SEED_POLICY_TXT = SEED_DIR / "policy.txt"
 SEED_QUICK_ACTIONS_CSV = SEED_DIR / "quick_actions.csv"
 POLICY_INDEX_DIR = DATA_DIR / "policy_index"  # FAISS index, rebuilt whenever policies change
 PRODUCT_INDEX_DIR = DATA_DIR / "product_index"  # FAISS index of the catalogue, rebuilt when products change
+UPLOAD_DIR = DATA_DIR / "uploads"  # product photos uploaded from the admin editor
 ROUTER_CACHE_DIR = DATA_DIR / "router_cache"  # cached embeddings of the router samples
 FRONTEND_DIST = BASE_DIR / "frontend" / "dist"

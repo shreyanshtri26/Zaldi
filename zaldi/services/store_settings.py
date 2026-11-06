@@ -11,14 +11,14 @@ from zaldi.db import override_repo
 from zaldi.errors import ValidationError
 
 PREFIX = "store."
-CONNECTORS = ("local", "woocommerce", "shopify", "fakestore")
+CONNECTORS = ("local", "woocommerce", "shopify", "escuelajs")
 MAX_LENGTH = 200
 # setting -> (config attribute holding the environment value, is it a secret)
 FIELDS = {
     "connector": ("STORE_CONNECTOR", False),
     "woocommerce_url": ("WOOCOMMERCE_URL", False), "woocommerce_key": ("WOOCOMMERCE_KEY", True), "woocommerce_secret": ("WOOCOMMERCE_SECRET", True),
     "shopify_domain": ("SHOPIFY_DOMAIN", False), "shopify_token": ("SHOPIFY_STOREFRONT_TOKEN", True), "shopify_version": ("SHOPIFY_API_VERSION", False),
-    "fakestore_url": ("FAKESTORE_URL", False),
+    "escuelajs_url": ("ESCUELAJS_URL", False),
 }
 SECRETS = {k for k, (_, secret) in FIELDS.items() if secret}
 
@@ -50,7 +50,7 @@ def _check(key: str, value: str) -> None:
         raise ValidationError(f"{key} is too long")
     if key == "connector" and value not in CONNECTORS:
         raise ValidationError(f"connector must be one of: {', '.join(CONNECTORS)}")
-    if key in ("woocommerce_url", "fakestore_url") and not value.startswith("https://"):
+    if key in ("woocommerce_url", "escuelajs_url") and not value.startswith("https://"):
         raise ValidationError(f"{key} must start with https://")
     if key == "shopify_domain" and not re.fullmatch(r"[a-z0-9][a-z0-9-]*\.myshopify\.com", value, re.I):
         raise ValidationError("shopify_domain must look like your-store.myshopify.com")
@@ -93,7 +93,7 @@ def test_connection() -> dict:
 
     try:
         store = build_connector(effective())
-        found = store.search_products("admin-test", "dress", limit=1)["products"]
+        found = store.search_products("admin-test", "", limit=1)["products"]  # no search words: any product proves the store answers
         return {"ok": True, "store": store.name, "found": len(found), "sample": found[0]["product_name"] if found else None}
     except ValueError as exc:  # missing or malformed settings: safe to show, they name settings and never contain secrets
         return {"ok": False, "message": str(exc)}

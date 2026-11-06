@@ -41,7 +41,7 @@
 .orb3d[data-state="responding"] .orb-body { animation: orb-lift 650ms ease-out; }
 .orb3d[data-state="inactive"] .orb-body { filter: saturate(.55) brightness(.75); }
 .orb3d[data-small] .orb-body { animation: none !important; box-shadow: 0 0 8px color-mix(in srgb, var(--c-lime) 20%, transparent); }
-.orb3d[data-small]:not([data-state="processing"]) :is(.orb-land, .orb-cloud) { animation: none; }
+.orb3d[data-small]:not([data-state="processing"]) .orb-land { animation-duration: 20s; } .orb3d[data-small]:not([data-state="processing"]) .orb-cloud { animation-duration: 13s; }
 @keyframes orb-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
 @keyframes orb-turn { to { -webkit-mask-position: calc(var(--orb) * 2) 0; mask-position: calc(var(--orb) * 2) 0; } }
 @keyframes orb-spin { to { transform: rotate(360deg); } }
@@ -50,5 +50,5 @@
 @media (prefers-reduced-motion: reduce) {
   .orb-body, .orb-body::before, .orb-thread, .smoke-css i { animation: none !important; transition: none; }
   /* the globe is the brand mark: it keeps a very slow turn (no flashing, no sudden movement) */
-  .orb-land { animation-duration: 120s !important; } .orb-cloud { animation-duration: 80s !important; } .orb-cloud.far { animation-duration: 100s !important; }
+  .orb-land { animation-duration: 36s !important; } .orb-cloud { animation-duration: 24s !important; } .orb-cloud.far { animation-duration: 30s !important; }
 }

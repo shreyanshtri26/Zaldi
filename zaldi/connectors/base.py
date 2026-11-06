@@ -43,7 +43,7 @@ class StoreConnector(Protocol):
     def get_product(self, product_id: int) -> dict | None: ...
 
     def list_categories(self) -> list[dict]:
-        """Optional. ``[{"name", "count", "group"}]`` for the home page; a store that cannot list them just omits this."""
+        """Optional. ``[{"name", "count", "group", "image"}]`` for the home page (``image`` may be ``None``); a store that cannot list them just omits this."""
 
     def search_policies(self, query: str, k: int = 3) -> list[str]: ...
 

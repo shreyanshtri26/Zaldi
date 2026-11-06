@@ -49,7 +49,7 @@ class LocalStore:
         return _card(dict(row)) if row else None
 
     def list_categories(self) -> list[dict]:
-        kids = {"Boys": "Kids", "Girls": "Kids"}
+        kids = {"Boys": "Kids", "Girls": "Kids", "Unisex": "Everyone"}
         with connect() as conn:
             rows = conn.execute("SELECT category, gender, COUNT(*) AS n FROM products GROUP BY category, gender").fetchall()
         by_category: dict[str, dict] = {}
@@ -58,7 +58,16 @@ class LocalStore:
             entry["count"] += r["n"]
             group = kids.get(r["gender"], r["gender"] or "More")
             entry["genders"][group] = entry["genders"].get(group, 0) + r["n"]
-        out = [{"name": name, "count": e["count"], "group": max(e["genders"], key=e["genders"].get)} for name, e in by_category.items()]
+        def department(e: dict) -> str:
+            top = max(e["genders"], key=e["genders"].get)
+            # a clear majority decides; a mixed category (footwear for men, women and everyone) belongs to everyone
+            return top if e["genders"][top] * 2 > e["count"] else "Everyone"
+
+        with connect() as conn:  # a category's picture is its first product that has one
+            pictures: dict[str, str] = {}
+            for r in conn.execute("SELECT category, image_url FROM products WHERE image_url IS NOT NULL AND image_url <> '' ORDER BY id"):
+                pictures.setdefault(r["category"], r["image_url"])
+        out = [{"name": name, "count": e["count"], "group": department(e), "image": pictures.get(name)} for name, e in by_category.items()]
         return sorted(out, key=lambda c: (-c["count"], c["name"]))  # most stocked first
 
     def search_policies(self, query: str, k: int = 3) -> list[str]:

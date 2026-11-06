@@ -3,14 +3,13 @@ import pytest
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 
 from tests.helpers import ADMIN_HEADERS
-from tests.test_connectors import FAKE_ROWS, FakeHttp, WOO_ROW, woo
-from zaldi.connectors.fakestore import FakeStore
+from tests.test_connectors import ROWS, WOO_ROW, escuela, woo
 from zaldi.connectors.local import LocalStore
 from zaldi.db import connect, init_db
 from zaldi.services import chat_service
 
 S = "sess-cats-1"
-GROUPS = {"Women", "Men", "Kids", "Unisex", "More"}
+GROUPS = {"Women", "Men", "Kids", "Everyone", "More"}
 
 
 @pytest.fixture(autouse=True)
@@ -31,7 +30,7 @@ def test_local_categories_cover_the_whole_catalogue_most_stocked_first():
 
 def test_the_categories_endpoint_is_public_and_shows_six_by_default(client):
     body = client.get("/api/categories").get_json()
-    assert body["shown"] == 6 and body["store"] == "local" and len(body["categories"]) > 6
+    assert body["shown"] == 24 and body["store"] == "local" and len(body["categories"]) == 18
 
 
 def test_the_admin_can_limit_and_hide_categories(client):
@@ -52,22 +51,21 @@ def test_tapping_every_category_finds_that_categorys_products():
     assert not problems, problems
 
 
-def test_fakestore_categories_are_counted_from_its_products():
-    rows = FAKE_ROWS + [dict(FAKE_ROWS[0], id=20, category="women's clothing", title="Wrap Dress")]
-    cats = FakeStore("https://fakestoreapi.com", http=FakeHttp(rows)).list_categories()
-    assert {c["name"]: (c["count"], c["group"]) for c in cats} == {"men's clothing": (2, "Men"), "jewelery": (1, "More"), "women's clothing": (1, "Women")}
+def test_escuela_categories_feed_the_home_page():
+    cats = escuela(ROWS).list_categories()
+    assert [c["name"] for c in cats] == ["Shoes", "Electronics", "mylove"]  # count, then name; trimmed; empty "Misc" left out
 
 
-def test_a_fakestore_category_search_does_not_mix_mens_and_womens():
-    rows = [dict(FAKE_ROWS[0], id=1, title="Slim Shirt", category="men's clothing"), dict(FAKE_ROWS[0], id=2, title="Wrap Dress", category="women's clothing")]
-    store = FakeStore("https://fakestoreapi.com", http=FakeHttp(rows))
-    assert [c["id"] for c in store.search_products(S, "Show me men's clothing")["products"]][:1] == [1]
-    assert [c["id"] for c in store.search_products(S, "Show me women's clothing")["products"]][:1] == [2]
+def test_the_admin_can_hide_a_junk_category_from_an_open_sandbox_api(client, monkeypatch):
+    monkeypatch.setattr("zaldi.services.categories.get_connector", lambda: escuela(ROWS))
+    client.put("/api/admin/settings", json={"home_categories_hidden": "mylove"}, headers=ADMIN_HEADERS)
+    names = [c["name"] for c in client.get("/api/categories").get_json()["categories"]]
+    assert "mylove" not in names and "Shoes" in names
 
 
 def test_woocommerce_categories_skip_empty_ones_and_decode_names():
     store = woo([{"name": "Saris &amp; Lehengas", "count": 4}, {"name": "Empty", "count": 0}])
-    assert store.list_categories() == [{"name": "Saris & Lehengas", "count": 4, "group": "More"}]
+    assert store.list_categories() == [{"name": "Saris & Lehengas", "count": 4, "group": "More", "image": None}]
 
 
 def test_a_store_that_cannot_list_categories_gives_an_empty_home_list(client, monkeypatch):
@@ -76,3 +74,27 @@ def test_a_store_that_cannot_list_categories_gives_an_empty_home_list(client, mo
 
     monkeypatch.setattr("zaldi.services.categories.get_connector", lambda: NoCategories())
     assert client.get("/api/categories").get_json()["categories"] == []
+
+
+def test_a_mixed_category_belongs_to_everyone_not_to_whichever_gender_came_first():
+    groups = {c["name"]: c["group"] for c in LocalStore().list_categories()}
+    assert groups["Footwear"] == "Everyone"     # men's, women's and unisex footwear
+    assert groups["Kurta"] == "Everyone"        # one women's, one men's
+    assert groups["Saree"] == "Women" and groups["Kurta Set"] == "Men" and groups["Kidswear"] == "Kids"
+
+
+def test_a_category_uses_its_first_product_photo_and_has_none_when_nothing_has_one():
+    assert all(c["image"] is None for c in LocalStore().list_categories())          # the built-in catalogue ships without photos
+    with connect() as conn:
+        conn.execute("UPDATE products SET image_url = '/uploads/first.png' WHERE id = (SELECT MIN(id) FROM products WHERE category = 'Saree')")
+        conn.execute("UPDATE products SET image_url = '/uploads/later.png' WHERE id = (SELECT MAX(id) FROM products WHERE category = 'Saree')")
+    images = {c["name"]: c["image"] for c in LocalStore().list_categories()}
+    assert images["Saree"] == "/uploads/first.png" and images["Footwear"] is None
+
+
+def test_escuela_and_woocommerce_categories_carry_a_real_picture_only():
+    cats = {c["name"]: c["image"] for c in escuela(ROWS).list_categories()}
+    assert cats["mylove"] == "https://i.imgur.com/a.jpeg" and cats["Shoes"] == "https://i.imgur.com/b.jpeg"   # Shoes skips its placeholder-only first item
+    assert cats["Electronics"] is None
+    woo_cats = woo([{"name": "Sarees", "count": 3, "image": {"src": "https://shop.example/s.jpg"}}, {"name": "Odd", "count": 1, "image": {"src": "javascript:x"}}]).list_categories()
+    assert {c["name"]: c["image"] for c in woo_cats} == {"Sarees": "https://shop.example/s.jpg", "Odd": None}

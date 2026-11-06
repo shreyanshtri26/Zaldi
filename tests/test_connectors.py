@@ -144,13 +144,15 @@ def test_a_read_only_store_gets_only_search_tools():
     assert names == {"search_products", "get_product", "ask_shopper"}
 
 
-def test_the_agent_returns_buy_links_for_a_connected_store():
+def test_the_agent_returns_buy_links_for_a_connected_store(temp_db):
+    init_db()  # the agent reads its prompts from the database; CI starts with none
     llm = Scripted(responses=[call("search_products", {"query": "silk saree"}), AIMessage(content="Try the Silk Saree.")], seen=[])
     r = run_agent("compare silk sarees", S, woo([WOO_ROW]), llm)
     assert r["products"][0]["buy_url"] == "https://shop.example/silk-saree" and "cart" not in r
 
 
-def test_shopify_string_ids_flow_through_the_tools():
+def test_shopify_string_ids_flow_through_the_tools(temp_db):
+    init_db()
     store = shopify({"data": {"product": SHOP_NODE}})
     llm = Scripted(responses=[call("get_product", {"product_id": "gid://shopify/Product/1"}), AIMessage(content="A blue kurta.")], seen=[])
     r = run_agent("tell me about it and compare", S, store, llm)
@@ -182,60 +184,116 @@ def test_a_connected_store_with_the_model_down_answers_from_its_own_catalogue_ne
     assert "Silk Saree" in r["response"] and "Rs. 4,999" in r["response"]
 
 
-# ---- Fake Store API (free demo catalogue) ----
-FAKE_ROWS = [
-    {"id": 1, "title": "Fjallraven Backpack", "price": 109.95, "category": "men's clothing", "description": "A pack for the forest",
-     "image": "https://fakestoreapi.com/img/1.png", "rating": {"rate": 3.9, "count": 120}},
-    {"id": 2, "title": "Slim Fit T-Shirts", "price": 22.3, "category": "men's clothing", "description": "Casual cotton shirt",
-     "image": "https://fakestoreapi.com/img/2.png", "rating": {"rate": 4.1, "count": 259}},
-    {"id": 9, "title": "Gold Plated Ring", "price": 9.99, "category": "jewelery", "description": "A bright ring",
-     "image": "javascript:alert(1)", "rating": {"rate": 4.6, "count": 400}},
+# ---- Platzi Fake Store API (api.escuelajs.co): free demo catalogue ----
+ROWS = [
+    {"id": 1, "title": "Mountain T-Shirt", "price": 44, "description": "Soft cotton tee", "images": ["https://i.imgur.com/a.jpeg"], "category": {"id": 1, "name": "mylove"}},
+    {"id": 2, "title": "Leather Shoes", "price": 120, "description": "Classic shoes", "images": ['["https://i.imgur.com/b.jpeg"]'], "category": {"id": 4, "name": "Shoes"}},
+    {"id": 3, "title": "Cheap Sneakers", "price": 15, "description": "Light shoes", "images": ["https://placehold.co/600x400?img=3"], "category": {"id": 4, "name": "Shoes"}},
+    {"id": 4, "title": "Broken Item", "price": 0, "description": "price is zero", "images": [], "category": {"id": 5, "name": "Misc"}},
+    {"id": 5, "title": "Gadget", "price": 99, "description": "A gadget", "images": [], "category": {"id": 2, "name": "Electronics "}},
 ]
 
 
-def fake(rows=FAKE_ROWS, **kw):
-    from zaldi.connectors.fakestore import FakeStore
+class EscuelaHttp(FakeHttp):
+    """Serves GET /products (offset/limit paging) and GET /products/{id} from one list."""
 
-    return FakeStore("https://fakestoreapi.com", http=FakeHttp(rows, **kw))
-
-
-def test_fakestore_searches_titles_categories_and_applies_the_budget():
-    store = fake()
-    found = store.search_products(S, "show me men's clothing under 50", {"max_price": 50})["products"]
-    assert [c["id"] for c in found] == [2]  # the backpack is over budget, the ring is the wrong category
-    card = found[0]
-    assert card["currency"] == "USD" and card["price"] == 22.3 and card["catalogue_only"] is True
-    assert card["stock_quantity"] is None  # unknown, never claimed to be in stock
-
-
-def test_fakestore_ranks_by_match_then_rating_and_strips_unsafe_images():
-    ids = [c["id"] for c in fake().search_products(S, "ring")["products"]]
-    assert ids == [9]
-    assert fake().search_products(S, "ring")["products"][0]["image_url"] is None  # javascript: image dropped
-    assert [c["id"] for c in fake().search_products(S, "")["products"]][0] == 9   # no terms: best rated first
+    def get(self, url, **kw):
+        self.calls.append(("get", url, kw))
+        path, params = url.split("api.escuelajs.co/api/v1", 1)[-1], kw.get("params") or {}
+        if path == "/products":
+            start = params.get("offset", 0)
+            data = self.data[start:start + params.get("limit", 100)]
+        else:
+            data = next((r for r in self.data if r["id"] == int(path.rsplit("/", 1)[1])), {})
+        return Reply(data, self.fail)
 
 
-def test_fakestore_reuses_its_product_list_and_survives_an_outage():
-    from zaldi.connectors.fakestore import FakeStore
+def escuela(rows=ROWS, **kw):
+    from zaldi.connectors.escuelajs import EscuelaStore
 
-    http, now = FakeHttp(FAKE_ROWS), [0.0]
-    store = FakeStore("https://fakestoreapi.com", http=http, clock=lambda: now[0])
-    store.search_products(S, "ring"); store.search_products(S, "shirt")
-    assert len(http.calls) == 1                                    # cached: one request for two questions
-    now[0], http.fail = 10_000, True                               # cache expired and the API is down
-    assert store.search_products(S, "ring")["products"]            # the stale list still answers
-    with pytest.raises(ValidationError):
-        FakeStore("https://fakestoreapi.com", http=FakeHttp([], fail=True)).search_products(S, "ring")
+    return EscuelaStore("https://api.escuelajs.co/api/v1", http=EscuelaHttp(rows, **kw))
 
 
-def test_fakestore_is_selectable_and_the_agent_sees_prices_with_their_currency(monkeypatch):
+def found(store, query, **filters):
+    return [c["id"] for c in store.search_products(S, query, filters or None)["products"]]
+
+
+def test_escuela_cleans_up_the_apis_quirks():
+    store = escuela()
+    shoes, sneakers = store.get_product(2), store.get_product(3)
+    assert shoes["image_url"] == "https://i.imgur.com/b.jpeg"          # a URL hidden inside JSON-looking text
+    assert sneakers["image_url"] == "https://placehold.co/600x400?img=3"  # the API sent only a placeholder box: show it as sent
+    assert shoes["currency"] == "USD" and shoes["stock_quantity"] is None and shoes["catalogue_only"] is True
+    assert store.get_product(4) is None                                 # a zero price is not a sellable product
+    both = dict(ROWS[1], id=9, images=["https://placehold.co/1x1", "https://i.imgur.com/real.jpeg"])
+    assert escuela([both]).get_product(9)["image_url"] == "https://i.imgur.com/real.jpeg"   # a real photo wins over a placeholder
+    assert all(escuela([dict(ROWS[1], id=8, images=["https://example.com/x.png"])]).get_product(8)["image_url"] == "https://example.com/x.png" for _ in [0])  # whatever the API sent
+    assert store.get_product("abc") is None
+
+
+def test_escuela_categories_are_trimmed_counted_and_skip_junk_products():
+    cats = escuela().list_categories()
+    assert {c["name"]: c["count"] for c in cats} == {"Shoes": 2, "mylove": 1, "Electronics": 1}   # "Misc" held only the zero-price item
+    assert cats[0]["name"] == "Shoes"                                   # most stocked first
+
+
+def test_escuela_matches_a_named_category_and_understands_ordering():
+    store = escuela()
+    assert sorted(found(store, "show me shoes")) == [2, 3]
+    assert found(store, "cheapest shoes") == [3, 2]
+    assert found(store, "most expensive shoes") == [2, 3]
+    assert found(store, "show me the cheapest")[0] == 3                 # ordering with nothing else named: whole catalogue
+    assert found(store, "show me", max_price=50) == [1, 3]               # budget filter, nothing else named
+
+
+def test_escuela_prefers_the_longest_category_name():
+    rows = [dict(ROWS[1], id=10, category={"name": "Running Shoes"}, title="Trail Runner"), dict(ROWS[1], id=11, title="Office Shoe")]
+    assert found(escuela(rows), "running shoes") == [10]               # not mixed with plain "Shoes"
+
+
+def test_escuela_pages_through_the_catalogue_and_reuses_what_it_fetched(monkeypatch):
+    from zaldi.connectors import escuelajs
+
+    monkeypatch.setattr(escuelajs, "PAGE", 2)
+    store = escuela()
+    assert [r["id"] for r in store._all()] == [1, 2, 3, 5]             # 5 rows read as 3 pages of 2; the zero-price one dropped; no duplicates
+    first = len(store.http.calls)
+    store.search_products(S, "shoes"); store.search_products(S, "gadget")
+    assert first == 3 and len(store.http.calls) == first               # cached: no further requests
+
+
+def test_escuela_survives_an_outage_with_its_cached_list_and_never_leaks_details():
+    from zaldi.connectors.escuelajs import EscuelaStore
+
+    http, now = EscuelaHttp(ROWS), [0.0]
+    store = EscuelaStore("https://api.escuelajs.co/api/v1", http=http, clock=lambda: now[0])
+    assert found(store, "shoes")
+    now[0], http.fail = 10_000, True                                    # cache expired, API down
+    assert found(store, "shoes")                                        # the stale list still answers
+    with pytest.raises(ValidationError) as err:
+        EscuelaStore("https://api.escuelajs.co/api/v1", http=EscuelaHttp([], fail=True)).search_products(S, "x")
+    assert "not reachable" in str(err.value) and "secret-url" not in str(err.value)
+
+
+def test_escuela_is_selectable_and_agent_gets_search_tools_only(monkeypatch, temp_db):
     get_connector.cache_clear()
-    monkeypatch.setattr(config, "STORE_CONNECTOR", "fakestore")
-    assert get_connector().name == "fakestore"
+    monkeypatch.setattr(config, "STORE_CONNECTOR", "escuelajs")
+    assert get_connector().name == "escuelajs"
     get_connector.cache_clear()
-    llm = Scripted(responses=[call("search_products", {"query": "shirt"}), AIMessage(content="The Slim Fit T-Shirts are $22.30.")], seen=[])
-    r = run_agent("compare shirts", S, fake(), llm)
-    sent = [m for m in llm.seen[1] if getattr(m, "tool_call_id", None)][0].content
-    assert '"currency": "USD"' in sent and '"in_stock": "unknown"' in sent
-    assert {t.name for t in build_tools(fake(), S, Run())} == {"search_products", "get_product", "ask_shopper"}
-    assert r["products"][0]["catalogue_only"] is True
+    assert {t.name for t in build_tools(escuela(), S, Run())} == {"search_products", "get_product", "ask_shopper"}
+
+
+def test_a_connected_escuela_store_answers_in_plain_text_with_followup_chips_when_the_model_is_down(temp_db, monkeypatch):
+    init_db()
+    chat_service.get_router.cache_clear()
+
+    class Boom(Scripted):
+        def _generate(self, *a, **k):
+            raise RuntimeError("quota")
+
+    monkeypatch.setattr(chat_service, "get_llm", lambda: Boom(responses=[AIMessage(content="x")], seen=[]))
+    monkeypatch.setattr("zaldi.connectors.get_connector", lambda: escuela())
+    r = chat_service.handle_query("show me shoes", S)
+    assert "Cheap Sneakers - $15.00" in r["response"] and "Lowest price: Cheap Sneakers ($15.00)" in r["response"]
+    assert "Top rated" not in r["response"]                             # this API has no ratings, so none is invented
+    assert r["quick_replies"] == ["Cheapest Shoes"]

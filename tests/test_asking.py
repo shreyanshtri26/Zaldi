@@ -26,7 +26,8 @@ def test_a_vague_request_gets_a_question_with_category_quick_replies():
 
 def test_a_specific_request_is_not_interrupted_with_questions():
     r = chat_service.handle_query("suggest a saree under 3000", S)
-    assert "quick_replies" not in r and r["products"]
+    assert r["products"] and "What are you shopping for" not in r["response"]   # it answers; any chips are follow-ups, not a question
+    assert all(q.startswith("Cheapest") for q in r.get("quick_replies", []))
 
 
 def test_the_agent_can_ask_with_tappable_answers_and_stops_there():

@@ -11,7 +11,7 @@ SETTINGS = {
     "welcome_greeting": ("Hi there, Zaldi.", 60),
     "welcome_heading": ("What's on *your mind*?", 120),  # *text* is shown in the accent colour
     "welcome_subtitle": ("Your personal shopping assistant. Ready when you are.", 300),
-    "home_categories_max": ("6", 2),  # how many category chips show before "All"
+    "home_categories_max": ("24", 2),  # how many category chips show before "All"
     "home_categories_hidden": ("", 200),  # comma-separated category names to leave off the home page
     "input_placeholder": ("Type your message…", 80),
     "color_black": ("#090B0A", 7),
@@ -56,8 +56,8 @@ def update_settings(changes: dict) -> dict[str, str]:
         value = value.strip()
         if value and key.startswith("color_") and not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
             raise ValidationError(f"{key} must look like #8FC8EB")
-        if value and key == "home_categories_max" and not (value.isdigit() and 1 <= int(value) <= 12):
-            raise ValidationError("home_categories_max must be 1 to 12")
+        if value and key == "home_categories_max" and not (value.isdigit() and 1 <= int(value) <= 60):
+            raise ValidationError("home_categories_max must be 1 to 60")
         if value and key == "font_size" and not (value.isdigit() and 12 <= int(value) <= 20):
             raise ValidationError("font_size must be 12 to 20")
         if value and key in _CHOICES and value not in _CHOICES[key]:

@@ -70,3 +70,8 @@ td .sub { color: var(--muted); font-size: 12px; } td.num, th.num { text-align: r
 .skel-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; } .skel-card { height: 96px; border-radius: var(--radius); } .skel-row { height: 44px; margin: 6px 0; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skel-line, .skel-card, .skel-row { animation: none; } }
+
+/* product photo upload in the editor */
+.photo { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; }
+.photo-preview { width: 96px; height: 96px; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface-2); border: 1px solid var(--border); }
+.photo-preview.empty { display: grid; place-items: center; text-align: center; font-size: 12px; color: var(--muted); padding: 6px; }

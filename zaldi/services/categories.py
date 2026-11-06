@@ -6,7 +6,7 @@ from zaldi.errors import ValidationError
 from zaldi.services import site_config
 
 log = logging.getLogger(__name__)
-MAX_SHOWN = 12
+MAX_SHOWN = 60
 
 
 def home_categories() -> dict:

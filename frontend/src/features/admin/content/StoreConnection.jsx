@@ -3,14 +3,14 @@ import { getStore, resetStore, saveStore, testStore } from "../../../api/client.
 import { useAuth } from "../../../shared/context/AuthContext.jsx";
 import { useToast } from "../../../shared/context/ToastContext.jsx";
 
-const LABELS = { local: "This store (built-in catalogue and cart)", woocommerce: "WooCommerce", shopify: "Shopify", fakestore: "Fake Store API (free demo catalogue)" };
+const LABELS = { local: "This store (built-in catalogue and cart)", woocommerce: "WooCommerce", shopify: "Shopify", escuelajs: "Platzi Fake Store API (free demo catalogue)" };
 // fields shown per connector: [key, label, hint, secret?]
 const FIELDS = {
   woocommerce: [["woocommerce_url", "Store address", "https://your-store.com", false], ["woocommerce_key", "Consumer key", "Read-only key from WooCommerce > Settings > Advanced > REST API", true],
     ["woocommerce_secret", "Consumer secret", "Shown once when you create the key", true]],
   shopify: [["shopify_domain", "Store domain", "your-store.myshopify.com", false], ["shopify_token", "Storefront access token", "Shopify admin > Apps > Develop apps > Storefront API", true],
     ["shopify_version", "API version", "Optional. Example: 2025-07", false]],
-  fakestore: [["fakestore_url", "Address", "Leave empty to use https://fakestoreapi.com", false]],
+  escuelajs: [["escuelajs_url", "Address", "Leave empty to use https://api.escuelajs.co/api/v1", false]],
   local: [],
 };
 

@@ -6,9 +6,9 @@ import pytest
 from tests.helpers import ADMIN_HEADERS
 from zaldi import config
 from zaldi.connectors import get_connector
-from zaldi.connectors.fakestore import FakeStore
+from zaldi.connectors.escuelajs import EscuelaStore
 
-ROWS = [{"id": 1, "title": "Test Dress", "price": 20, "category": "women's clothing", "description": "A dress", "image": None, "rating": {"rate": 4}}]
+ROWS = [{"id": 1, "title": "Test Dress", "price": 20, "description": "A dress", "images": [], "category": {"name": "Clothes"}}]
 
 
 @pytest.fixture(autouse=True)
@@ -25,14 +25,14 @@ def put(client, **body):
 
 def test_store_settings_need_the_admin_token(client):
     assert client.get("/api/admin/store").status_code == 401
-    assert client.put("/api/admin/store", json={"connector": "fakestore"}).status_code == 401
+    assert client.put("/api/admin/store", json={"connector": "escuelajs"}).status_code == 401
     assert client.post("/api/admin/store/test").status_code == 401
 
 
 def test_choosing_a_connector_takes_effect_immediately(client):
     assert get_connector().name == "local"
-    assert put(client, connector="fakestore").get_json()["values"]["connector"] == "fakestore"
-    assert get_connector().name == "fakestore"          # the cache was rebuilt, no restart needed
+    assert put(client, connector="escuelajs").get_json()["values"]["connector"] == "escuelajs"
+    assert get_connector().name == "escuelajs"          # the cache was rebuilt, no restart needed
 
 
 def test_secrets_are_write_only(client):
@@ -60,16 +60,16 @@ def test_invalid_store_settings_are_rejected(client, payload):
 
 
 def test_reset_returns_to_the_environment(client):
-    put(client, connector="fakestore")
+    put(client, connector="escuelajs")
     out = client.delete("/api/admin/store", headers=ADMIN_HEADERS).get_json()
     assert out["values"]["connector"] == "local" and out["overridden"] == [] and get_connector().name == "local"
 
 
 def test_connection_test_reports_success_without_leaking_anything(client, monkeypatch):
-    monkeypatch.setattr(FakeStore, "_all", lambda self: ROWS)
-    put(client, connector="fakestore", fakestore_url="https://fakestoreapi.com")
+    monkeypatch.setattr(EscuelaStore, "_all", lambda self: ROWS)
+    put(client, connector="escuelajs", escuelajs_url="https://api.escuelajs.co/api/v1")
     out = client.post("/api/admin/store/test", headers=ADMIN_HEADERS).get_json()
-    assert out == {"ok": True, "store": "fakestore", "found": 1, "sample": "Test Dress"}
+    assert out == {"ok": True, "store": "escuelajs", "found": 1, "sample": "Test Dress"}
 
 
 def test_connection_test_explains_a_misconfigured_store_in_plain_words(client):

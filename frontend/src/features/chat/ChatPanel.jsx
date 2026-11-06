@@ -72,7 +72,7 @@ function Composer({ busy, onSend, onListening, placeholder, boxRef, photo = true
   return (
     <form className="composer" onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { setImage(e.target.files[0] || null); e.target.value = ""; }} />
-      {photo && <button type="button" className="icon-btn" aria-label="Attach a photo" title="Search by photo" onClick={() => file.current.click()}><Icon name="image" size={18} /></button>}
+      {photo && <button type="button" className="icon-btn" aria-label="Attach a photo" title="Search by photo" onClick={() => file.current.click()}><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg></button>}
       <div className="composer-main">
         {image && <span className="attach"><Icon name="image" size={13} />{image.name}<button type="button" aria-label="Remove photo" onClick={() => setImage(null)}>×</button></span>}
         <label className="sr" htmlFor="msg">Message</label>
@@ -131,14 +131,13 @@ export default function ChatPanel({ messages, busy, onSend, onAdd, onSetQty, car
   // Category chips come from the connected store; the admin's quick actions become a separate "Help" row (minus any that repeat a category).
   const known = new Set(categories.map((c) => norm(c.name)));
   const help = quickActions.filter((q) => !known.has(norm(q.title)));
-  // One line: "Shop by category" sits beside the help chips (Payment, Returns); the category chips open on their own row below.
+  // "Shop by category" is a hover button on the same line as the admin's help shortcuts (Payment, Returns...).
   const chips = (
-    <div className={`chips chip-line ${settings.cards_align} ${settings.cards_position}`}>
-      <CategoryChips categories={categories} shown={shown} align={settings.cards_align} onPick={(name) => onSend(`Show me ${name}`)} />
+    <CategoryChips categories={categories} shown={shown} onPick={(name) => onSend(`Show me ${name}`)}>
       {help.map(({ id, icon, title, message }) => (
         <button key={id} className="chip" onClick={() => onSend(message)}><Icon name={icon} size={15} />{title}</button>
       ))}
-    </div>
+    </CategoryChips>
   );
 
   return (

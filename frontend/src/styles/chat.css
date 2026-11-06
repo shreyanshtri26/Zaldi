@@ -73,21 +73,40 @@ html { scroll-behavior: smooth; }
 .chips.quick { margin-top: 12px; justify-content: flex-start; }
 .chips.quick .chip { height: 34px; padding: 0 14px; }
 
-/* ---------- Home: shop by category + help ---------- */
-.cats { margin-top: 22px; }
-.cats-label { display: inline-flex; align-items: center; gap: 6px; margin: 0 auto; padding: 4px 8px; border: 0; background: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; }
-.cats-label svg { transition: transform 200ms ease; } .cats.open .cats-label svg, .cats:focus-within .cats-label svg { transform: rotate(180deg); }
-.cats { display: flex; flex-direction: column; align-items: center; }
-.cats-row { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 320ms ease, opacity 220ms ease, margin 220ms ease; }
-.cats.open .cats-row, .cats:focus-within .cats-row { max-height: 220px; opacity: 1; padding-top: 8px; }
-/* label and help chips share one line; the opened category row wraps onto the next line */
-.chip-line { align-items: center; }
-.chip-line .cats { display: contents; }
-.chip-line .cats-label { margin: 0; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
-.chip-line .cats-row { flex-basis: 100%; order: 2; }
-.cats .chips { margin-top: 0; }
-.chip.cat small { margin-left: 6px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.chip.cat.all { color: var(--ink); border-color: var(--accent); } .chip.cat.all svg { color: var(--accent); }
-.cat-panel .fields { display: grid; gap: 14px; align-content: start; }
-.cat-group { margin: 6px 0 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
-@media (max-width: 640px) { .cats-row { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; } .cats.open .cats-row { padding-bottom: 4px; } .cats-row .chip { flex: none; } }
+/* ---------- Home: shop by category (cards) + help ---------- */
+.cat-rail { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%); }
+.fabric { --zari: var(--c-lime, #C1F75A); isolation: isolate; }
+.cat-tile { position: relative; flex: none; width: 132px; height: 92px; display: flex; align-items: flex-end; padding: 10px 11px; text-align: left; border: 1px solid var(--border); border-radius: 14px;
+  overflow: hidden; isolation: isolate; color: #fff; cursor: pointer; scroll-snap-align: start; transition: transform 200ms ease, border-color var(--t), box-shadow 200ms ease;
+  background: linear-gradient(145deg, hsl(var(--h) 38% 24%), hsl(calc(var(--h) + 30) 42% 13%)); }
+/* the fabric: one motif per tile, drawn in the tile's own hue */
+.fabric::before { content: ""; position: absolute; inset: 0; z-index: -2; opacity: .9; transition: background-position 600ms ease, transform 600ms ease; }
+.motif-0::before { background: radial-gradient(circle, hsl(var(--h) 70% 78% / .55) 0 1.6px, transparent 2.2px) 0 0 / 14px 14px, radial-gradient(circle, hsl(var(--h) 70% 78% / .35) 0 1.6px, transparent 2.2px) 7px 7px / 14px 14px; }
+.motif-1::before { background: repeating-linear-gradient(135deg, hsl(var(--h) 55% 62% / .28) 0 5px, transparent 5px 11px), repeating-linear-gradient(45deg, hsl(var(--h) 55% 62% / .14) 0 2px, transparent 2px 11px); }
+.motif-2::before { background: repeating-conic-gradient(hsl(var(--h) 50% 60% / .26) 0 25%, transparent 0 50%) 0 0 / 20px 20px; transform: rotate(45deg) scale(1.5); }
+.motif-3::before { background: repeating-linear-gradient(90deg, transparent 0 13px, var(--zari) 13px 14px, transparent 14px 20px, hsl(var(--h) 50% 60% / .22) 20px 24px); opacity: .55; }
+.motif-4::before { background: repeating-linear-gradient(0deg, hsl(var(--h) 50% 65% / .22) 0 1px, transparent 1px 6px), repeating-linear-gradient(90deg, hsl(var(--h) 50% 65% / .22) 0 1px, transparent 1px 6px); }
+.motif-5::before { background: radial-gradient(circle at 50% 100%, transparent 0 9px, hsl(var(--h) 60% 70% / .35) 9.5px 10.5px, transparent 11px) 0 0 / 22px 14px; }
+.cat-tile::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 25%, rgba(0, 0, 0, .62) 100%); } /* keeps the name readable on any motif or photo */
+.cat-tile img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; transition: transform 400ms ease; }
+.cat-tile.has-photo::before { display: none; }
+.cat-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 15px/1.1 var(--font-display); letter-spacing: -.02em; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
+.cat-tile:hover { transform: translateY(-3px); border-color: var(--zari); box-shadow: 0 10px 24px rgba(0, 0, 0, .4); }
+.cat-tile:hover::before { background-position: 14px 14px; } .cat-tile:hover img { transform: scale(1.06); } .cat-tile:active { transform: none; }
+.drawer.cat-panel .fields { display: grid; grid-template-columns: 1fr; gap: 16px; align-content: start; } /* beats the drawer's own two-column form grid */
+.cat-group { margin: 4px 0 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 10px; } .cat-grid .cat-tile { width: auto; }
+@media (max-width: 640px) { .cat-tile { width: 118px; height: 84px; } }
+@media (prefers-reduced-motion: reduce) { .cat-tile, .cat-tile::before, .cat-tile img { transition: none; } .cat-tile:hover, .cat-tile:hover img { transform: none; } }
+
+/* "Shop by category": a button on the shortcut line; the tiles open beneath it on hover, focus or tap */
+.cats { width: 100%; margin-top: 26px; }
+.cats-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.cats-trigger { color: var(--ink); border-color: var(--accent); } .cats-trigger svg { color: var(--accent); transition: transform 200ms ease; } .cats.open .cats-trigger svg { transform: rotate(180deg); }
+.cats-reveal { max-height: 0; opacity: 0; visibility: hidden; overflow: hidden; padding-top: 0; transition: max-height 320ms ease, opacity 220ms ease, padding 220ms ease, visibility 0s linear 320ms; }
+.cats.open .cats-reveal { max-height: 220px; opacity: 1; visibility: visible; padding-top: 12px; transition-delay: 0s; }
+.cats-reveal-head { display: flex; justify-content: flex-end; padding: 0 2px 6px; }
+.cats-all { display: inline-flex; align-items: center; gap: 2px; border: 0; background: none; padding: 2px 4px; border-radius: 6px; font: inherit; font-size: 12.5px; color: var(--accent); cursor: pointer; } .cats-all:hover { color: var(--ink); }
+.help-line { justify-content: center; margin-top: 26px; }
+@media (prefers-reduced-motion: reduce) { .cats-reveal, .cats-trigger svg { transition: none; } }

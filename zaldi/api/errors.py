@@ -12,6 +12,6 @@ def register_error_handlers(app: Flask) -> None:
 
     @app.errorhandler(404)
     def handle_not_found(_):
-        if request.path.startswith("/api/"):
+        if request.path.startswith(("/api/", "/uploads/")):  # an unknown API or photo path must be a real 404, never the app's HTML page
             return jsonify(error="not found"), 404
         return serve_frontend(request.path)

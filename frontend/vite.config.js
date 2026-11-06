@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      "/uploads": "http://127.0.0.1:5000", // product photos uploaded from the admin
       "/store-sim": "http://127.0.0.1:5000", // demo storefront the checkout automation drives
       "/api": {
         target: "http://127.0.0.1:5000",

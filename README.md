@@ -132,9 +132,20 @@ browser-automation checkout flow.
     `zaldi/connectors/`, selected with `STORE_CONNECTOR`: `local` (this
     app's catalogue and cart), `woocommerce` and `shopify` (read-only
     search; each product card links to the store's own page, so no cart
-    or payment data passes through Zaldi), or `fakestore` (the free
-    [Fake Store API](https://fakestoreapi.com) demo catalogue, no key,
-    catalogue only). Adding a platform means writing one class.
+    or payment data passes through Zaldi), or `escuelajs` (the free
+    [Platzi Fake Store API](https://api.escuelajs.co/docs) demo catalogue,
+    no key, catalogue only). Adding a platform means writing one class.
+    The Platzi connector reads only the documented `GET /products` and
+    `GET /categories` endpoints (cached for ten minutes), understands
+    "cheapest" and "most expensive", and shows each product's image
+    exactly as the API sends it (a real photo wins over a placeholder box,
+    and a dead image link falls back to a fabric tile). Its write
+    endpoints are never used. The API is an open sandbox that anyone can
+    write to, so its data can include junk such as odd category names:
+    hide those under Admin -> Content -> Storefront -> Hidden categories.
+-   Product answers end with a short comparison ("Lowest price", "Top
+    rated" when the store has ratings) and tappable follow-ups such as
+    "Cheapest jewelery".
     Amazon and Flipkart offer only affiliate catalogue APIs, so they
     would be catalogue-and-link connectors; they are not built yet.
 -   The assistant asks for what it needs. A vague request ("suggest
@@ -153,8 +164,16 @@ browser-automation checkout flow.
 -   The admin link in the chat navbar appears only while an admin is
     signed in; visitors do not see it.
 -   Product images appear on the cards in replies (larger when there is a
-    single result). The built-in catalogue ships without image URLs, so
-    add them in the admin product editor.
+    single result). The built-in catalogue ships without photos: open
+    Admin -> Products -> Edit and use **Upload a photo** (JPEG, PNG or
+    WebP, up to 3 MB; checked by content, never SVG) or paste an image
+    link. Uploads are saved under `DATA_DIR/uploads`, which is on the same
+    persistent volume as the database.
+-   The home page's "Shop by category" opens every category, grouped by
+    department (Women, Men, Kids, Everyone). A category whose products
+    mix genders belongs to Everyone; the number shown is set under Admin
+    -> Content -> Storefront (default 24, up to 60), and any category can
+    be hidden there.
 -   Scripted-model evals (`tests/test_agent_loop.py`,
     `tests/test_agent_evals.py`, `tests/test_connectors.py`) and a
     retrieval test set run offline in CI.
@@ -628,14 +647,14 @@ secrets in `.env` for local development and do not commit that file.
                                       storefront.
 
   `STORE_CONNECTOR`                   `local` (default), `woocommerce`,
-                                      `shopify` or `fakestore`. Per-store
+                                      `shopify` or `escuelajs`. Per-store
                                       settings: `WOOCOMMERCE_URL`,
                                       `WOOCOMMERCE_KEY`,
                                       `WOOCOMMERCE_SECRET`,
                                       `SHOPIFY_DOMAIN`,
                                       `SHOPIFY_STOREFRONT_TOKEN`,
                                       `SHOPIFY_API_VERSION`,
-                                      `FAKESTORE_URL`.
+                                      `ESCUELAJS_URL`.
 
   `AGENT_ENABLED`                     Turns the tool-using agent on
                                       (default) or off (`0`).
@@ -927,7 +946,7 @@ model generation is unavailable.
     are read-only: shoppers buy on the store itself.
 -   **Prices and stock from other stores:** a connected store's prices
     are shown in its own currency, and stock is shown only when the
-    store reports it (the Fake Store API does not).
+    store reports it (the Platzi demo API does not, and it gives no currency, so USD is assumed).
 -   **Admin authentication:** the current implementation uses one shared
     admin token rather than individual administrator accounts and
     role-based access.

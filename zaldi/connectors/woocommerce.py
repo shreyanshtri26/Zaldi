@@ -69,7 +69,8 @@ class WooStore:
 
     def list_categories(self) -> list[dict]:
         rows = self._get("products/categories", {"per_page": 50, "hide_empty": "true"})
-        return [{"name": html.unescape(r["name"]), "count": r.get("count", 0), "group": "More"} for r in rows if r.get("count")]
+        return [{"name": html.unescape(r["name"]), "count": r.get("count", 0), "group": "More", "image": safe_url((r.get("image") or {}).get("src"))}
+                for r in rows if r.get("count")]
 
     def get_product(self, product_id) -> dict | None:
         try:

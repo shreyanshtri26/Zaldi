@@ -50,7 +50,7 @@ def _fallback_reply(products: list[dict], dropped: list[str], policies: list[str
     if policies and policy_question:
         return policies[0][:600]
     if products:
-        lines = [f"- {p['product_name']} ({p['color']}, {p['brand']}) - {_money(p['price'])}" for p in products[:5]]
+        lines = [f"- {p['product_name']} ({p['color']}, {p['brand']}) - {_money(p['price'])}" for p in products]  # the text lists exactly the cards shown below it
         note = f"\n(No exact match, so I relaxed: {', '.join(dropped)}.)" if dropped else ""
         return "Here is what I found:\n" + "\n".join(lines) + note
     if policies:
@@ -221,8 +221,8 @@ def _connected_store_fallback(text: str, session_id: str) -> dict:
     products = get_connector().search_products(session_id, text)["products"]
     if not products:
         return {"response": "I couldn't find a match for that. Try a category name or a different word.", "products": [], "steps": []}
-    lines = [f"- {p['product_name']} - {_price(p)}{_stars(p)}" for p in products[:5]]
-    return {"response": "Here is what I found:\n" + "\n".join(lines) + _insight(products[:5]), "products": products, "steps": []}
+    lines = [f"- {p['product_name']} - {_price(p)}{_stars(p)}" for p in products]
+    return {"response": "Here is what I found:\n" + "\n".join(lines) + _insight(products), "products": products, "steps": []}
 
 
 def _try_agent(text: str, session_id: str, history: list[tuple[str, str]] | None = None) -> dict | None:

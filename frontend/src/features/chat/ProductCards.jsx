@@ -1,10 +1,26 @@
+import { useState } from "react";
 import { hue, money } from "../../shared/utils/format.js";
 
+const MOTIFS = 6; // woven-fabric motifs, shared with the category tiles (see chat.css)
 const label = (name = "") => name.charAt(0).toUpperCase() + name.slice(1);
 
 // Product results under a reply. "Add" goes straight to the cart API (the same cart the chat edits); once a product is in the cart
 // the button becomes a - 1 + stepper, so quantity can be changed right here without opening the cart.
 const MAX_LINE = 10;
+
+// The product picture. If the link is dead (a store's image host down, a fake "example.com" link) the fabric tile takes over.
+function Thumb({ p, i }) {
+  const [broken, setBroken] = useState(false);
+  const photo = p.image_url && !broken;
+  const h = hue(p.product_name);
+  return (
+    <div className={`p-thumb${p.catalogue_only ? " contain" : ""}${photo ? "" : ` fabric motif-${h % MOTIFS}`}`}
+      style={photo ? undefined : { "--h": h, background: `linear-gradient(135deg, hsl(${h} 45% 32%), hsl(${(h + 40) % 360} 50% 18%))` }}>
+      {photo ? <img src={p.image_url} alt={p.product_name} decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} /> : <span>{p.category}</span>}
+      <b className="p-num">{i + 1}</b>
+    </div>
+  );
+}
 
 export default function ProductCards({ products, onAdd, onSetQty, cartQty = {}, busyId }) {
   if (!products?.length) return null;
@@ -12,10 +28,7 @@ export default function ProductCards({ products, onAdd, onSetQty, cartQty = {}, 
     <div className="p-grid">
       {products.map((p, i) => (
         <article key={p.id} className="p-card" style={{ animationDelay: `${i * 50}ms` }}>
-          <div className={`p-thumb${p.catalogue_only ? " contain" : ""}`} style={p.image_url ? undefined : { background: `linear-gradient(135deg, hsl(${hue(p.product_name)} 45% 32%), hsl(${(hue(p.product_name) + 40) % 360} 50% 18%))` }}>
-            {p.image_url ? <img src={p.image_url} alt={p.product_name} decoding="async" /> : <span>{p.category}</span>}
-            <b className="p-num">{i + 1}</b>
-          </div>
+          <Thumb p={p} i={i} />
           <div className="p-body">
             <h4>{p.product_name}</h4>
             <p>{[p.brand, p.color].filter(Boolean).join(" · ") || label(p.category)}</p>

@@ -14,12 +14,12 @@ def build_connector(values: dict) -> StoreConnector:
         from zaldi.connectors.shopify import ShopifyStore
 
         return ShopifyStore(values["shopify_domain"], values["shopify_token"], values["shopify_version"])
-    if kind == "fakestore":
-        from zaldi.connectors.fakestore import FakeStore
+    if kind == "escuelajs":
+        from zaldi.connectors.escuelajs import EscuelaStore
 
-        return FakeStore(values["fakestore_url"])
+        return EscuelaStore(values["escuelajs_url"])
     if kind != "local":
-        raise ValueError(f"unknown store connector: {kind!r} (use local, woocommerce, shopify or fakestore)")
+        raise ValueError(f"unknown store connector: {kind!r} (use local, woocommerce, shopify or escuelajs)")
     from zaldi.connectors.local import LocalStore
 
     return LocalStore()

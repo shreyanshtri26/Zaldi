@@ -6,7 +6,7 @@ export const SITE_DEFAULTS = {
     welcome_greeting: "Hi there, Zaldi.",
     welcome_heading: "What's on *your mind*?",
     welcome_subtitle: "Your personal shopping assistant. Ready when you are.",
-    home_categories_max: "6",
+    home_categories_max: "24",
     home_categories_hidden: "",
     input_placeholder: "Type your message…",
     color_black: "#090B0A",

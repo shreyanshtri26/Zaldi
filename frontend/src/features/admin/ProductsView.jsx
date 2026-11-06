@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createItem, deleteItem, listItems, updateItem } from "../../api/client.js";
+import { createItem, deleteItem, listItems, updateItem, uploadImage } from "../../api/client.js";
 import { useAuth } from "../../shared/context/AuthContext.jsx";
 import { useToast } from "../../shared/context/ToastContext.jsx";
 import Drawer from "../../shared/components/Drawer.jsx";
@@ -15,6 +15,29 @@ const FIELDS = [
   ["image_url", "Image URL (https://…)", { full: true }],
   ["description", "Description", { full: true, area: true }],
 ];
+// Upload a photo instead of hosting one: the server stores it and the product's image link becomes /uploads/<name>.
+function PhotoUpload({ url, token, onUploaded }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  async function pick(e) {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try { const out = await uploadImage(file, token); onUploaded(out.url); toast("Photo uploaded. Save to keep it."); }
+    catch (err) { toast(err.message, "bad"); } finally { setBusy(false); }
+  }
+  return (
+    <div className="field full photo">
+      {url ? <img className="photo-preview" src={url} alt="Current product" /> : <div className="photo-preview empty">No photo yet</div>}
+      <label>{url ? "Replace photo" : "Upload a photo"}
+        <input className="input" type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={pick} />
+        <span className="hint">{busy ? "Uploading…" : "JPEG, PNG or WebP, up to 3 MB. Or paste an image link above."}</span>
+      </label>
+    </div>
+  );
+}
+
 const SORTS = {
   name: ["Name", (a, b) => a.product_name.localeCompare(b.product_name)],
   priceUp: ["Price: low to high", (a, b) => a.price - b.price],
@@ -118,6 +141,7 @@ export default function ProductsView({ initialQuery = "" }) {
                     value={form[key] ?? ""} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />}
             </label>
           ))}
+          <PhotoUpload url={form.image_url} token={token} onUploaded={(url) => setForm({ ...form, image_url: url })} />
         </Drawer>
       )}
     </div>
