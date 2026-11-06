@@ -1,5 +1,3 @@
 title,subtitle,message,icon,position,active
-Sarees,"Banarasi, Kanjivaram, Mysore silk",Show me Banarasi sarees,box,1,1
-Kurtas,"Chikankari, block print, silk",Kurtas under Rs. 1500,grid,2,1
-Payment,"COD, UPI, cards, EMI",Is COD available?,doc,3,1
-Returns,7-day returns and refunds,What is the return policy?,shield,4,1
+Payment,"COD, UPI, cards, EMI",Is COD available?,doc,1,1
+Returns,7-day returns and refunds,What is the return policy?,shield,2,1

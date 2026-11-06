@@ -40,7 +40,7 @@ function ChatScreen() {
   const [adding, setAdding] = useState(null);
   const toast = useToast();
   const { settings } = useSiteConfig();
-  const { token } = useAuth(); // the admin link is shown only while an admin is signed in
+  const { token, logout } = useAuth(); // the admin link is shown only while an admin is signed in
 
   useEffect(() => { getCart().then(setCart).catch(() => {}); }, []);
 
@@ -55,6 +55,15 @@ function ChatScreen() {
   }, []);
 
   async function send(text, image) {
+    // Hidden chat commands: handled here, never sent to the assistant.
+    const cmd = (text || "").trim().toLowerCase();
+    if (!image && (cmd === "@admin login" || cmd === "@admin logout")) {
+      const chatId = append(activeId, { role: "user", text: text.trim() });
+      if (cmd === "@admin logout") { logout(); append(chatId, { role: "bot", text: "Admin mode is off." }); }
+      else if (token) append(chatId, { role: "bot", text: "You are already in admin mode." });
+      else append(chatId, { role: "bot", text: "Enter the admin password.", adminPrompt: true });
+      return;
+    }
     const chatId = append(activeId, { role: "user", text: text || "Find something like this photo", image: Boolean(image) });
     const startedAt = Date.now();
     setBusy(true);

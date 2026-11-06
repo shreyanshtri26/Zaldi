@@ -9,8 +9,8 @@ def test_site_config_defaults_reproduce_the_original_ui(client):
     assert config["settings"] == site_config.defaults()
     assert config["settings"]["welcome_greeting"] == "Hi there, Zaldi."
     assert config["settings"]["welcome_heading"] == "What's on *your mind*?"
-    assert [a["title"] for a in config["quick_actions"]] == ["Sarees", "Kurtas", "Payment", "Returns"]
-    assert config["quick_actions"][0]["message"] == "Show me Banarasi sarees"
+    assert [a["title"] for a in config["quick_actions"]] == ["Payment", "Returns"]
+    assert config["quick_actions"][0]["message"] == "Is COD available?"
 
 
 def test_settings_override_and_reset(client):

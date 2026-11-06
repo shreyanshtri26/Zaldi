@@ -7,6 +7,7 @@ import { useSiteConfig } from "../../shared/context/SiteConfigContext.jsx";
 import useLenis from "../../shared/hooks/useLenis.js";
 import { AgentCompleted, AgentWorking } from "./AgentStatus.jsx";
 import CategoryChips, { norm } from "./CategoryChips.jsx";
+import AdminPrompt from "./AdminPrompt.jsx";
 import ProductCards from "./ProductCards.jsx";
 import Typed from "./Typed.jsx";
 import useCategories from "./useCategories.js";
@@ -25,6 +26,7 @@ function Reply({ message, onAdd, onSetQty, cartQty, addingId, onOpenCart, onSend
       <div style={{ flex: 1, minWidth: 0 }}>
         {!message.error && <AgentCompleted route={message.route} ms={message.ms} steps={message.steps} />}
         <div className={`reply${message.error ? " error" : ""}`}><Typed text={message.text} animate={animate} onDone={() => setDone(true)} /></div>
+        {message.adminPrompt && showReplies && <AdminPrompt />}
         {done && <ProductCards products={message.products} onAdd={onAdd} onSetQty={onSetQty} cartQty={cartQty} busyId={addingId} />}
         {done && message.route === "cart" && message.cartCount > 0 && <button className="btn ghost sm cta" onClick={() => onOpenCart("cart")}><Icon name="cart" size={15} /> View cart</button>}
         {done && message.action === "collect_address" && <button className="btn sm cta" onClick={() => onOpenCart("address")}>Enter delivery details</button>}
