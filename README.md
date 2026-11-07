@@ -56,7 +56,7 @@ What makes it *agentic* and not just a chatbot:
 | For shoppers | For the shop owner | For the server admin |
 |---|---|---|
 | Natural-language search with budgets, colours, sizes | Connect Shopify, WooCommerce, a feed, any API, product links, Amazon, Flipkart, or Zaldi's own shop | Several shops on one server, each isolated |
-| Hindi, Hinglish and English | Edit products, policies, prompts, colours, quick actions | Owner and viewer accounts; sign-up on or off |
+| Hindi, Hinglish and English | Edit products, policies, prompts, colours, quick actions | A **Stores** page: create stores, draft/live, owner and viewer accounts, reset links; sign-up on or off |
 | Product cards with photos, prices, ratings, a −1+ stepper | Use your own Gemini or Groq key and pick the model from a live list | Admin password and database set from the portal |
 | Questions asked back with tappable answers | Test connection checklist in plain words | Copy data from SQLite to Postgres, restart from the portal |
 | Cart, checkout, order status, returns (with confirmation) | See every chat and the tools used; metrics on speed, cost, accuracy | One-command Docker, Render + Cloudflare + Neon |
@@ -169,7 +169,8 @@ At `/admin`: sign in with your own account, create a store (if the server allows
 | Content -> Store connection | Which shop the agent searches, with the Test checklist |
 | **Content -> AI model** | Provider (Gemini or Groq), **your own API key** (encrypted, write-only, with a test button), and a **model dropdown** fed by the provider's live list |
 | Content -> Add to your website | The embed line and the websites allowed to show the assistant |
-| Content -> Account | Change your own password |
+| Content -> Account | Change your password; turn on **two-step sign-in** with an authenticator app |
+| **Stores** *(server admin only)* | Create, delete and set draft/live; manage each store's accounts (roles, **reset links**, turn off two-step) |
 | **Server** *(server admin only)* | Admin password set from the portal; **database address** (test, copy data, save, restart) |
 
 Details and a recommended set-up order: [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md).
@@ -268,6 +269,7 @@ Environment variables (keep secrets in `.env`; never commit it). Anything an own
 | `DATABASE_URL` | Postgres address (Neon pooled). Empty means SQLite, or an address saved from the portal. `PG_SCHEMA`, `PG_POOL_SIZE` tune it |
 | `DATA_DIR` | Where SQLite files, uploads and the saved database address live (a persistent disk in production) |
 | `ALLOW_SIGNUP` | `1` lets visitors create their own shop and owner account |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_STARTTLS` | Optional: email password reset links to owners (without them the server admin makes links) |
 | `ALLOW_PRIVATE_STORE_URLS` | `1` lets connectors reach localhost (development only) |
 | `STOREFRONT_URL` | Storefront the checkout automation drives (default: the built-in demo) |
 | `RATE_LIMIT_CHAT`, `RATE_LIMIT_LOGIN` | Requests per minute per visitor (0 = off) |
@@ -311,8 +313,8 @@ set the address in **Server -> Database**, **Copy my data**, restart. Step by st
 -   **Live agent evaluation** is one run of one model (Groq); Gemini was not measured because its free daily quota was used up.
 -   **Connected shops are read-only:** shoppers buy on the shop itself. There is no payment gateway; the built-in checkout stops at the
     shopper's confirmation.
--   **Accounts:** no password reset or two-step sign-in yet; the server admin is a shared secret. Managing stores and accounts from the
-    portal (not only the API) is planned.
+-   **Accounts:** owners have password reset (links), authenticator-app two-step sign-in and lockout after repeated wrong attempts; there
+    is no SMS or hardware-key option, and the server admin is still a shared secret without two-step.
 -   **Chat history** lives in the browser (the last six turns are sent); the server keeps no conversation.
 -   **Prices and stock from other shops** appear in that shop's currency, and stock only when the shop reports it.
 -   **Docker image builds** are not covered by CI.

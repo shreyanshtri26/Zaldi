@@ -6,6 +6,12 @@ releases yet, so changes are grouped by theme, newest first.
 ## Unreleased
 
 ### Added
+-   **Stores page in the portal (server admin):** create, delete (typing the id) and set draft/live; manage each store's accounts: add,
+    change role, delete, make a one-time **reset link**, turn off two-step.
+-   **Password reset:** signed, single-use, one-hour links; owners can ask for one by email when `SMTP_*` is set, otherwise the server admin
+    makes one. Sessions end when a password is reset or changed.
+-   **Two-step sign-in** for owner and viewer accounts (authenticator-app codes, one-time recovery codes, replay protection) and a lock after
+    five wrong attempts in ten minutes.
 -   **AI settings per store (Admin -> Content -> AI model):** choose Gemini or Groq, use your own API key (encrypted, write-only, with a
     Test key button) and pick the model from a dropdown fed by the provider's own current model list. Photo search keeps using Gemini.
 -   **Server settings (Admin -> Server, server admin only):** set the admin password from the portal (the environment `ADMIN_TOKEN` stays

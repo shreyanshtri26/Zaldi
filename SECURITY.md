@@ -19,7 +19,9 @@ Supported version: the `main` branch.
 | The model being talked into an action | Limits are in code: only products the shopper was shown can be added, quantities are bounded, no tool takes a session id, returns and checkout need the shopper's own confirmation (a signed, expiring, single-use token bound to the session) |
 | One shopper reaching another's data | The session is bound on the server and never visible to the model |
 | One shop reaching another's data | A separate database folder or schema per shop, selected by context, not by a filter that could be forgotten |
-| Stolen or guessed admin access | Hashed owner passwords (scrypt), signed 12-hour tokens tied to one store and role, rate-limited sign-in, one vague "wrong email or password" answer; the server admin must give the current password to change it |
+| Stolen or guessed admin access | Hashed owner passwords (scrypt); signed 12-hour tokens tied to one store, role and *auth version*; rate-limited sign-in and a lock after five wrong attempts in ten minutes; one vague "wrong email or password" answer; optional **two-step sign-in** (authenticator-app codes, each usable once, plus one-time recovery codes); the server admin must give the current password to change it |
+| A stolen session surviving a password change | A password change or reset, a role change, or turning two-step off raises the account's auth version, so every earlier token stops working |
+| Reset links being abused | Signed, one hour, single use, replaced by any newer link; the answer to "forgot password" never reveals whether an account exists; emails are rate-limited per account; a reset does not turn two-step off |
 | Admin credentials locking the owner out | The environment `ADMIN_TOKEN` always works as a recovery key |
 | Secrets leaking through the portal or API | Keys are write-only: only "set" and the last four characters are ever returned. AI keys are encrypted at rest (Fernet derived from `SECRET_KEY`); the saved database address is encrypted in `bootstrap.json` |
 | The portal being used to reach the server's own network (SSRF) | Store and feed addresses must be public http(s) links; private, loopback and link-local addresses are refused; so are private database hosts |
@@ -38,8 +40,9 @@ Supported version: the `main` branch.
 
 ## Known limits
 
--   There is no password reset or two-step sign-in for owner accounts yet.
--   The server admin credential is a shared secret, not a per-person account.
+-   Two-step sign-in uses authenticator-app codes (TOTP). There is no SMS or hardware-key option.
+-   The server admin credential is a shared secret, not a per-person account, and has no two-step sign-in; protect it like a root password.
+-   The wrong-attempt lock is kept in each server process's memory, so it resets on restart and is per worker; the per-visitor rate limit still applies.
 -   Injection detection is pattern-based: it is transparent and testable, not a substitute for least privilege, which is why the dangerous
     actions are limited in code as well.
 -   Amazon and Flipkart connectors have only been tested against recorded responses.

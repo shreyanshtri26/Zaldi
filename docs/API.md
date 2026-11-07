@@ -34,7 +34,10 @@ Base path `/api`. JSON in and out. Errors are `{"error": "message"}` with a 4xx/
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| POST | `/admin/account-login` | `{email, password}` | `{token, email, store, role}` |
+| POST | `/admin/account-login` | `{email, password}` | `{token, email, store, role}`, or `{needs_two_step: true, challenge}` when the account has two-step sign-in on |
+| POST | `/admin/account-login/two-step` | `{challenge, code}` | `{token, email, store, role}`. The code is 6 digits from the app, or a recovery code; each works once. The challenge lasts 5 minutes |
+| POST | `/admin/forgot-password` | `{email}` | `{ok, email_enabled}`. Always the same answer; an email is sent only if the account exists and the server can send email |
+| POST | `/admin/password-reset` | `{token, new}` | `{ok, email}`. The token comes from a reset link; it works once, for one hour |
 | POST | `/signup` | `{email, password, store, name}` | `{account, token, store}`. Works only when `ALLOW_SIGNUP=1` |
 
 ## Store admin routes (`X-Admin-Token` and `X-Store`; owners change, viewers read)
@@ -52,7 +55,11 @@ Base path `/api`. JSON in and out. Errors are `{"error": "message"}` with a 4xx/
 | GET | `/admin/embed` | `{store, host, allowed_origins, snippet, ready}` |
 | POST/PUT/DELETE | `/products`, `/policies`, `/quick_actions` (`/<id>`) | Manage content |
 | POST | `/admin/upload` | Upload a product photo |
-| PUT | `/admin/account/password` | `{current, new}`: change your own account password |
+| PUT | `/admin/account/password` | `{current, new}`: change your own password. Returns `{ok, token}`: a fresh token, because every other session of the account ends |
+| GET | `/admin/account/two-step` | `{enabled, recovery_codes_left}` |
+| POST | `/admin/account/two-step/setup` | `{password}`: returns `{secret, uri}` (not active yet) |
+| POST | `/admin/account/two-step/enable` | `{code}`: turns it on, returns `{recovery_codes: [8 codes]}` once |
+| POST | `/admin/account/two-step/disable` | `{password, code}`: turns it off; returns a fresh token |
 
 ### AI settings
 
@@ -77,8 +84,13 @@ owner approves it.
 | Method | Path | Body | Purpose |
 |---|---|---|---|
 | GET/POST | `/admin/stores` | `{slug, name}` | List or create stores |
-| PUT/DELETE | `/admin/stores/<id>` | `{status: draft\|live}` | Change status or delete (drops the store's data) |
-| GET/POST | `/admin/stores/<id>/accounts` | `{email, password, role}` | List or create owner/viewer accounts |
+| PUT | `/admin/stores/<id>` | `{status: draft\|live}` | Change status |
+| DELETE | `/admin/stores/<id>` | `{confirm: "<id>"}` | Delete the store and all its data. The id must be repeated in `confirm` |
+| GET/POST | `/admin/stores/<id>/accounts` | `{email, password, role}` | List (with `role` and `two_step`) or create owner/viewer accounts |
+| PUT | `/admin/stores/<id>/accounts/<email>` | `{role}` | Change a role; the account's sessions end |
+| DELETE | `/admin/stores/<id>/accounts/<email>` | | Delete an account; its sessions end |
+| POST | `/admin/stores/<id>/accounts/<email>/reset-link` | | `{link, expires_in}`: a one-hour, single-use password reset link to give to the person |
+| POST | `/admin/stores/<id>/accounts/<email>/two-step/disable` | | Turn two-step off for an account (a lost phone) |
 | GET | `/admin/server` | | `{admin_password: {source, environment_token_set, min_length}, database: {backend, host, database, schema, source, saved_in_portal, saved, restart_needed, environment_overrides}}` |
 | PUT/DELETE | `/admin/server/password` | `{current, new}` / `{current}` | Set or remove the portal admin password (the current credential is required) |
 | POST | `/admin/server/database/test` | `{url}` | `{ok, state, message, version, has_data, host, database}`; the address is never echoed |

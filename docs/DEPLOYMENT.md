@@ -29,6 +29,7 @@ named volume. The image build is not verified by CI: check it, and the checkout 
 | `GOOGLE_API_KEY`, `GROQ_API_KEY` | The server's default model keys (stores can bring their own) |
 | `DATA_DIR` | `/var/data` (the disk) |
 | `DATABASE_URL` | Optional: Neon's pooled connection string |
+| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_STARTTLS` (1) | Optional: let owners get password reset links by email. Without them the server admin creates reset links on the Stores page |
 
 ## 4. Moving to Postgres (Neon)
 

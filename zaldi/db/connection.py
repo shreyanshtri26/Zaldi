@@ -19,7 +19,10 @@ except ImportError:  # SQLite-only install
 
 MIGRATIONS = [("products", "image_url", "TEXT"), ("chat_logs", "steps", "TEXT"),
               ("chat_logs", "latency_ms", "INTEGER"), ("chat_logs", "input_tokens", "INTEGER"), ("chat_logs", "output_tokens", "INTEGER"),
-              ("chat_logs", "cost_usd", "REAL"), ("chat_logs", "model", "TEXT"), ("chat_logs", "variant", "TEXT"), ("chat_logs", "checked", "TEXT")]
+              ("chat_logs", "cost_usd", "REAL"), ("chat_logs", "model", "TEXT"), ("chat_logs", "variant", "TEXT"), ("chat_logs", "checked", "TEXT"),
+              ("admin_users", "auth_version", "INTEGER NOT NULL DEFAULT 0"), ("admin_users", "reset_nonce", "TEXT"), ("admin_users", "totp_secret", "TEXT"),
+              ("admin_users", "totp_enabled", "INTEGER NOT NULL DEFAULT 0"), ("admin_users", "totp_last_step", "INTEGER NOT NULL DEFAULT 0"),
+              ("admin_users", "recovery_codes", "TEXT")]
 
 
 @contextmanager

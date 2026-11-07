@@ -108,11 +108,12 @@ Main tables: `products`, `policies`, `quick_actions`, `settings`, `prompts`, `ch
 |---|---|---|
 | Shopper | Random `X-Session-Id` (a UUID the browser makes) | Chat, cart, preferences, checkout for that session |
 | Store viewer | Signed account token | Read their store's admin data |
-| Store owner | Signed account token (12 h) | Change everything in their store, including AI keys and model |
+| Store owner | Signed account token (12 h), optionally after a two-step code | Change everything in their store, including AI keys and model |
 | Server admin | `ADMIN_TOKEN` environment token, or a password set in the portal | Everything, in every store, plus stores, accounts, database, restart |
 
 The environment `ADMIN_TOKEN` always works as a recovery key, so a forgotten portal password cannot lock the admin out. Account tokens are
-signed with `SECRET_KEY`, tied to one store and role, and stop working if the account is deleted. See [SECURITY.md](../SECURITY.md).
+signed with `SECRET_KEY`, tied to one store, role and *auth version*, and stop working if the account is deleted or if its password,
+role or two-step setting changes. See [SECURITY.md](../SECURITY.md).
 
 ## 7. Settings and secrets
 

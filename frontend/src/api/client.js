@@ -103,6 +103,25 @@ export const removeDatabase = (token) => request("/admin/server/database", { met
 export const copyDatabase = (url, replace, confirm, token) => request("/admin/server/database/copy", { method: "POST", body: { url, replace, confirm }, token });
 export const restartServer = (confirm, token) => request("/admin/server/restart", { method: "POST", body: { confirm }, token });
 export const changeAccountPassword = (current, next, token) => request("/admin/account/password", { method: "PUT", body: { current, new: next }, token });
+// Sign-in steps, password reset, and the account's own two-step settings
+export const accountLoginTwoStep = (challenge, code) => request("/admin/account-login/two-step", { method: "POST", body: { challenge, code } });
+export const forgotPassword = (email) => request("/admin/forgot-password", { method: "POST", body: { email } });
+export const resetPassword = (token, next) => request("/admin/password-reset", { method: "POST", body: { token, new: next } });
+export const getTwoStep = (token) => request("/admin/account/two-step", { token });
+export const setupTwoStep = (password, token) => request("/admin/account/two-step/setup", { method: "POST", body: { password }, token });
+export const enableTwoStep = (code, token) => request("/admin/account/two-step/enable", { method: "POST", body: { code }, token });
+export const disableTwoStep = (password, code, token) => request("/admin/account/two-step/disable", { method: "POST", body: { password, code }, token });
+// Stores and accounts (server admin)
+export const listStoresAdmin = (token) => request("/admin/stores", { token });
+export const createStoreAdmin = (slug, name, token) => request("/admin/stores", { method: "POST", body: { slug, name }, token });
+export const setStoreStatus = (slug, status, token) => request(`/admin/stores/${slug}`, { method: "PUT", body: { status }, token });
+export const deleteStoreAdmin = (slug, confirm, token) => request(`/admin/stores/${slug}`, { method: "DELETE", body: { confirm }, token });
+export const listAccountsAdmin = (slug, token) => request(`/admin/stores/${slug}/accounts`, { token });
+export const createAccountAdmin = (slug, body, token) => request(`/admin/stores/${slug}/accounts`, { method: "POST", body, token });
+export const setAccountRole = (slug, email, role, token) => request(`/admin/stores/${slug}/accounts/${encodeURIComponent(email)}`, { method: "PUT", body: { role }, token });
+export const deleteAccountAdmin = (slug, email, token) => request(`/admin/stores/${slug}/accounts/${encodeURIComponent(email)}`, { method: "DELETE", token });
+export const accountResetLink = (slug, email, token) => request(`/admin/stores/${slug}/accounts/${encodeURIComponent(email)}/reset-link`, { method: "POST", token });
+export const accountTwoStepOff = (slug, email, token) => request(`/admin/stores/${slug}/accounts/${encodeURIComponent(email)}/two-step/disable`, { method: "POST", token });
 export const getCart = () => request("/cart");
 export const addToCart = (product_id, quantity = 1) => request("/cart/items", { method: "POST", body: { product_id, quantity } });
 export const setCartQuantity = (id, quantity) => request(`/cart/items/${id}`, { method: "PUT", body: { quantity } });

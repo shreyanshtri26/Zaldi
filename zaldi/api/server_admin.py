@@ -89,3 +89,34 @@ def put_account_password():
     if not account:
         raise ValidationError("Sign in with a store account to change its password. The server admin password is changed under Server.")
     return jsonify(accounts.change_password(account["email"], _body().get("current", ""), _body().get("new", "")))
+
+
+def _own_account() -> dict:
+    account = g.get("account")
+    if not account:
+        raise ValidationError("Sign in with a store account to use this. The server admin signs in with the admin password.")
+    return account
+
+
+@bp.get("/account/two-step")
+@admin_required
+def two_step_status():
+    return jsonify(accounts.two_step_status(_own_account()["email"]))
+
+
+@bp.post("/account/two-step/setup")
+@admin_required
+def two_step_setup():
+    return jsonify(accounts.begin_two_step(_own_account()["email"], _body().get("password", "")))
+
+
+@bp.post("/account/two-step/enable")
+@admin_required
+def two_step_enable():
+    return jsonify(accounts.confirm_two_step(_own_account()["email"], _body().get("code", "")))
+
+
+@bp.post("/account/two-step/disable")
+@admin_required
+def two_step_disable():
+    return jsonify(accounts.disable_two_step(_own_account()["email"], _body().get("password", ""), _body().get("code", "")))

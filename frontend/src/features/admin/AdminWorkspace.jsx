@@ -14,12 +14,13 @@ import PoliciesView from "./PoliciesView.jsx";
 import ProductsView from "./ProductsView.jsx";
 import SearchDialog from "./SearchDialog.jsx";
 import ServerView from "./ServerView.jsx";
+import StoresView from "./StoresView.jsx";
 
 // [view id, label, icon name]
 const NAV_ITEMS = [["overview", "Overview", "dash"], ["products", "Products", "box"], ["policies", "Policies", "doc"], ["chats", "Chats", "msgs"], ["metrics", "Metrics", "dash"], ["content", "Content", "sliders"]];
 const viewFromHash = () => {
   const hash = window.location.hash.slice(1);
-  return NAV_ITEMS.some(([id]) => id === hash) || hash === "server" ? hash : "overview";
+  return NAV_ITEMS.some(([id]) => id === hash) || hash === "server" || hash === "stores" ? hash : "overview";
 };
 
 export default function AdminWorkspace() {
@@ -54,7 +55,7 @@ export default function AdminWorkspace() {
 
   const nav = (
     <nav className="tabs">
-      {(server ? [...NAV_ITEMS, ["server", "Server", "shield"]] : NAV_ITEMS).map(([id, label, icon]) => (
+      {(server ? [...NAV_ITEMS, ["stores", "Stores", "box"], ["server", "Server", "shield"]] : NAV_ITEMS).map(([id, label, icon]) => (
         <button key={id} className={`tab${view === id ? " active" : ""}`} onClick={() => goTo(id)}>
           <Icon name={icon} size={15} /> {label}
           {id === "products" && stats?.low_stock > 0 && <span className="count">{stats.low_stock} low</span>}
@@ -79,6 +80,7 @@ export default function AdminWorkspace() {
         {view === "policies" && <PoliciesView key={presetQuery} initialQuery={presetQuery} />}
         {view === "chats" && <ChatsView chats={stats?.recent_chats || []} />}
         {view === "metrics" && <MetricsView />}
+        {view === "stores" && server && <StoresView />}
         {view === "server" && server && <ServerView server={server} onChange={(next) => setServer((s) => ({ ...s, ...next }))} />}
         {view === "content" && <ContentView />}
         </div>

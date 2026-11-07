@@ -104,7 +104,7 @@ def test_only_the_server_admin_can_manage_stores(client):
     assert client.put("/api/admin/stores/live-shop", json={"status": "weird"}, headers=ADMIN_HEADERS).status_code == 400
     listed = [s["slug"] for s in client.get("/api/admin/stores", headers=ADMIN_HEADERS).get_json()["stores"]]
     assert listed == ["default", "live-shop"]
-    assert client.delete("/api/admin/stores/live-shop", headers=ADMIN_HEADERS).status_code == 204
+    assert client.delete("/api/admin/stores/live-shop", json={"confirm": "live-shop"}, headers=ADMIN_HEADERS).status_code == 204
 
 
 def test_parallel_tool_calls_run_against_the_same_store_as_the_chat():

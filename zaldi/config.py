@@ -44,6 +44,12 @@ SHOPIFY_API_VERSION = os.getenv("SHOPIFY_API_VERSION", "2025-07")
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # postgresql://... (Neon). Empty = SQLite files under DATA_DIR
 PG_SCHEMA = os.getenv("PG_SCHEMA", "public")  # Postgres schema of the default store; other stores get <schema>_s_<id>
 PG_POOL_SIZE = os.getenv("PG_POOL_SIZE", "10")
+SMTP_HOST = os.getenv("SMTP_HOST", "")  # to email password-reset links; empty = the server admin creates reset links by hand
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "")  # e.g. "Zaldi <no-reply@yourshop.com>"
+SMTP_STARTTLS = os.getenv("SMTP_STARTTLS", "1") != "0"
 ALLOW_SIGNUP = os.getenv("ALLOW_SIGNUP") == "1"  # let anyone create their own store and owner account (off by default)
 LLM_MODEL_CHEAP = os.getenv("LLM_MODEL_CHEAP", "")  # cheaper model for simple messages; empty = always use LLM_MODEL
 LLM_RETRIES = int(os.getenv("LLM_RETRIES", "2"))  # extra attempts on a rate limit or outage, with exponential backoff

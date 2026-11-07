@@ -7,9 +7,13 @@ for anything here.
 
 Go to `/admin`. There are three tabs:
 
--   **Sign in** — your own email and password (store owners and viewers).
+-   **Sign in** — your own email and password (store owners and viewers). If you turned on two-step sign-in, you then type the 6-digit
+    code from your authenticator app (or a recovery code). **Forgot your password?** sends a reset link by email when the server is set up
+    to send email; otherwise ask your server admin for a link (section 6).
 -   **Create a store** — makes a new shop and makes you its owner. Only appears to work when the server allows sign-up (`ALLOW_SIGNUP=1`).
 -   **Server admin** — the server's admin password (see section 8).
+
+A reset link opens this same page with a form to choose a new password.
 
 Roles: an **owner** can change everything in their store; a **viewer** can look but not change anything. Tokens last 12 hours.
 
@@ -68,12 +72,25 @@ add in the chat; see the README ("Add the assistant to your website").
 
 ## 6. Managing stores and accounts (server admin)
 
-Using the API (a portal screen for this is planned): `POST /api/admin/stores` creates a store; `POST /api/admin/stores/<id>/accounts`
-creates an owner or viewer account; `PUT /api/admin/stores/<id>` switches a store between draft and live. See [API.md](API.md).
+The **Stores** page (only the server admin sees it):
+
+-   **New store:** a name and an id (3 to 32 lowercase letters, digits or dashes; it goes in the website snippet). It starts empty, as a draft.
+-   **Draft / Live** for each store, and **Delete** (you must type the store's id; it erases all of the store's data and cannot be undone).
+-   **Accounts** for each store: add an owner or viewer with an email and a starting password, change someone's role (they have to sign in
+    again), delete an account, **Reset link** (a one-hour, single-use link you send to the person, for a forgotten password), and
+    **Turn off two-step** (for a lost phone; the owner can turn it on again).
+
+Sending a reset link by email needs `SMTP_HOST` and `SMTP_FROM` on the server; without them people ask you for a link.
 
 ## 7. Your password
 
-Store owners: **Content -> Account**. Enter the current password and a new one (at least 10 characters).
+Store owners: **Content -> Account**.
+
+-   **Your password:** the current password and a new one (at least 10 characters). Changing it signs out your other devices.
+-   **Two-step sign-in:** adds a code from your phone after the password, so a stolen password alone is not enough. Enter your password,
+    add the shown key to an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy...), type the 6-digit code
+    it shows, and **save the 8 recovery codes** (each works once and they are never shown again). To turn it off you need your password and
+    a current code. Five wrong attempts lock the account for ten minutes.
 
 ## 8. Server admin password
 
@@ -105,3 +122,5 @@ If the host also sets `DATABASE_URL`, that wins; the page tells you. **Remove th
 | The assistant does not appear on your site | Add the site under Allowed websites, and check the `data-store` id |
 | A model is missing from the dropdown | Press **Refresh list**; models your key cannot use are not listed |
 | You forgot the server admin password | Use the `ADMIN_TOKEN` from the host's settings, then set a new password |
+| An owner forgot their password | Press *Reset link* on the Stores page and send it to them, or let them use *Forgot your password?* if the server can send email |
+| An owner lost their phone | Use a recovery code, or press *Turn off two-step* on the Stores page |

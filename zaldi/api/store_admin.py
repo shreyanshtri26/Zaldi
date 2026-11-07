@@ -49,6 +49,8 @@ def update_store(slug):
 @bp.delete("/stores/<slug>")
 @server_admin_required
 def delete_store(slug):
+    if (request.get_json(silent=True) or {}).get("confirm") != slug:
+        raise ValidationError("Type the store id to confirm. Deleting a store erases all of its data.")
     stores.delete_store(slug)
     return "", 204
 
@@ -69,9 +71,58 @@ def create_account(slug):
 @bp.post("/account-login")
 @rate_limited("RATE_LIMIT_LOGIN")
 def account_login():
+    """Step one. Either the signed-in token, or ``needs_two_step`` and a short-lived challenge to answer with a code."""
     body = request.get_json(silent=True) or {}
-    account = accounts.authenticate(body.get("email", ""), body.get("password", ""))
-    return jsonify(token=accounts.issue_token(account), **account)
+    return jsonify(accounts.begin_login(body.get("email", ""), body.get("password", "")))
+
+
+@bp.post("/account-login/two-step")
+@rate_limited("RATE_LIMIT_LOGIN")
+def account_login_two_step():
+    body = request.get_json(silent=True) or {}
+    return jsonify(accounts.finish_login(body.get("challenge", ""), body.get("code", "")))
+
+
+@bp.post("/forgot-password")
+@rate_limited("RATE_LIMIT_LOGIN")
+def forgot_password():
+    """Ask for a reset link by email. The answer is the same whether or not the account exists."""
+    return jsonify(accounts.forgot_password((request.get_json(silent=True) or {}).get("email", ""), request.host_url))
+
+
+@bp.post("/password-reset")
+@rate_limited("RATE_LIMIT_LOGIN")
+def password_reset():
+    body = request.get_json(silent=True) or {}
+    return jsonify(accounts.reset_password(body.get("token", ""), body.get("new", "")))
+
+
+@bp.delete("/stores/<slug>/accounts/<email>")
+@server_admin_required
+def delete_account(slug, email):
+    accounts.delete_account(slug, email)
+    return "", 204
+
+
+@bp.put("/stores/<slug>/accounts/<email>")
+@server_admin_required
+def update_account(slug, email):
+    return jsonify(accounts.set_role(slug, email, (request.get_json(silent=True) or {}).get("role", "")))
+
+
+@bp.post("/stores/<slug>/accounts/<email>/reset-link")
+@server_admin_required
+def account_reset_link(slug, email):
+    """A one-hour, single-use link the server admin gives to the owner (no email needed)."""
+    accounts._account_in(slug, email)
+    token = accounts.create_reset(email)
+    return jsonify(link=f"{request.host_url.rstrip('/')}/admin?reset={token}", expires_in=accounts.RESET_TTL)
+
+
+@bp.post("/stores/<slug>/accounts/<email>/two-step/disable")
+@server_admin_required
+def account_two_step_off(slug, email):
+    return jsonify(accounts.admin_turn_off_two_step(slug, email))
 
 
 signup_bp = Blueprint("signup", __name__)
