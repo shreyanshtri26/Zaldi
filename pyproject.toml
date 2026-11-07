@@ -1,7 +1,7 @@
 [project]
 name = "zaldi"
 version = "1.0.0"
-description = "AI shopping assistant and CMS for an Indian ethnic-fashion store (Flask API + React frontend)."
+description = "Agentic AI for e-commerce: a shopping assistant for any online shop, with an admin portal (Flask API + React frontend)."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

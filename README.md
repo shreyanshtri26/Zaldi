@@ -1,13 +1,13 @@
 # Zaldi
 
-**An agentic AI shopping assistant that plugs into any online shop, with an admin portal to run it.**
+**Agentic AI for E-commerce**
 
-Shoppers talk to a store: they find products, compare them, understand policies, build a cart, check out, or return an order. Behind the
+Zaldi is an agentic AI shopping assistant that plugs into any online shop, with an admin portal to run it. Shoppers talk to a store: they find products, compare them, understand policies, build a cart, check out, or return an order. Behind the
 chat is a tool-using AI agent that reads the shop's real catalogue and policies instead of guessing. Behind the agent is a built-in admin
 portal where the person who builds the shop controls everything without code: which store the agent searches, what it may do, which AI
 model (and whose key) answers, what it says, how it looks, and where it appears.
 
-Zaldi began as an assistant for Indian ethnic fashion (INR prices; English, Hindi and Hinglish) and is now a platform. It can sit on top of
+Zaldi began as an assistant for Indian ethnic fashion (INR prices; English, Hindi and Hinglish) and is now an e-commerce platform. It can sit on top of
 **a shop built with Zaldi**, **an existing site** (Shopify, WooCommerce, a product feed or any API), or **products listed elsewhere**
 (Amazon, Flipkart, or plain product pages).
 
