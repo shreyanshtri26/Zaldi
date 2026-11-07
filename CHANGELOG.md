@@ -6,6 +6,11 @@ releases yet, so changes are grouped by theme, newest first.
 ## Unreleased
 
 ### Added
+-   **Amazon and Flipkart connectors checked against the official reference pages:** Amazon's real link field (`detailPageURL`; without it
+    every card would have lost its buy link), the buy-box price, regional token address chosen from the marketplace, `sortBy` and
+    `minPrice`/`maxPrice`; Flipkart's `productInfoList` response, the `1.0/product.json` lookup, attributes, special prices and the legacy
+    shape. A local server that enforces the documented protocols runs them over real HTTP, and `scripts/check_marketplaces.py` runs it
+    (`--live --record` saves the real response shape when you have keys).
 -   **Stores page in the portal (server admin):** create, delete (typing the id) and set draft/live; manage each store's accounts: add,
     change role, delete, make a one-time **reset link**, turn off two-step.
 -   **Password reset:** signed, single-use, one-hour links; owners can ask for one by email when `SMTP_*` is set, otherwise the server admin

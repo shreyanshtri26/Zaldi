@@ -56,17 +56,24 @@ falling back to Open Graph tags). It respects `robots.txt`, reads only public pa
 terms forbid it): use their affiliate connectors.
 
 ### Amazon (`amazon`)
-The Amazon **Creators API** (the successor to PA-API 5, retired in 2026). You need an Associates account: credential id and secret,
-partner tag, marketplace (`www.amazon.in`) and the token address shown with your credentials. Cards link to Amazon with your tag and say
-"from Amazon". Prices are cached at most 10 minutes.
+The Amazon **Creators API** (the successor to PA-API 5, retired in 2026). You need an Associates account with Creators API access:
+credential id and secret, partner tag, and the marketplace (`www.amazon.in` for India). The token address is chosen from the marketplace's
+region (India and Europe use `api.amazon.co.uk`, North America `api.amazon.com`, Japan/Singapore/Australia `api.amazon.co.jp`); fill in
+"Token address" only to override it. Cards link to Amazon with your tag (`detailPageURL`) and say "from Amazon". "Cheapest", "most
+expensive" and "top rated" become Amazon's own `sortBy`, and a budget becomes `minPrice`/`maxPrice` in the currency's smallest unit; the
+same rules are applied again locally in case a filter is ignored. The price shown is the buy-box winner's. Prices are cached at most 10 minutes.
 
 ### Flipkart (`flipkart`)
-The **Flipkart Affiliate API**: affiliate tracking id and API token. Cards link to Flipkart and say "from Flipkart".
+The **Flipkart Affiliate API**: affiliate tracking id and API token. Search uses `1.0/search.json` (at most 10 results) and product
+lookup `1.0/product.json`. The price shown is the special price, else the selling price, else the MRP; cards link to Flipkart with your
+affiliate id and say "from Flipkart". The older response shape is understood too.
 
-> **Status of Amazon and Flipkart.** Both are built from the providers' published documentation and tested against recorded sample
-> responses, because no affiliate account was available. Neither provider publishes the full search response, so the parsers accept the
-> spellings seen in the documentation. Check yours with `python scripts/check_marketplaces.py --live`, which prints the real response
-> shape (never your keys).
+> **Status of Amazon and Flipkart.** Both are written from the providers' published reference pages and tested three ways: against
+> responses shaped like the documentation's samples, with the real `requests` library against a local server that enforces the documented
+> protocol (token request, bearer token, marketplace and affiliate headers, parameters), and for wrong credentials. They have **not** been
+> run against live Amazon or Flipkart accounts, because none was available. Details the documentation does not show (Amazon's brand and
+> feature fields, `getItems`) are read tolerantly. With your keys, run `python scripts/check_marketplaces.py --live --record`: it prints
+> the real response shape (field names only, never your keys) and saves it to `evals/results/marketplace_shapes.json`.
 
 ### Shopify, WooCommerce, Platzi demo
 Read-only product search; each card links to the store's own page, so no cart or payment data passes through Zaldi. `escuelajs` is the free

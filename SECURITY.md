@@ -45,5 +45,5 @@ Supported version: the `main` branch.
 -   The wrong-attempt lock is kept in each server process's memory, so it resets on restart and is per worker; the per-visitor rate limit still applies.
 -   Injection detection is pattern-based: it is transparent and testable, not a substitute for least privilege, which is why the dangerous
     actions are limited in code as well.
--   Amazon and Flipkart connectors have only been tested against recorded responses.
+-   Amazon and Flipkart connectors have not been run against live accounts (they are tested against documented sample shapes and a simulated server).
 -   The attack lists in the evaluation suite were written together with the rules (see [docs/EVALUATION.md](docs/EVALUATION.md)).

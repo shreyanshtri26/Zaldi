@@ -154,8 +154,9 @@ Set it up in **Admin -> Content -> Store connection**, then press **Test connect
 to fix. The agent only gets tools the connection supports (*capability levels*: `catalogue`, `cart`, `orders`), so it never offers what a
 shop cannot do. Addresses must be public links; keys are write-only.
 
-> **Amazon and Flipkart** are built from the providers' published docs (Amazon's Creators API replaced PA-API 5 in 2026) and tested against
-> recorded responses only. Check yours with `python scripts/check_marketplaces.py --live`. See [docs/CONNECTORS.md](docs/CONNECTORS.md).
+> **Amazon and Flipkart** are written from the providers' published docs (Amazon's Creators API replaced PA-API 5 in 2026) and tested against
+> documented sample shapes and a local server that enforces their protocols over real HTTP, but **not yet against live accounts**. With your keys run
+> `python scripts/check_marketplaces.py --live --record`. See [docs/CONNECTORS.md](docs/CONNECTORS.md).
 
 ## The admin portal
 
@@ -294,7 +295,7 @@ Tables and the data-layer design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#5-
 python -m pytest -m "not live"                                    # offline suite on SQLite (CI)
 ZALDI_TEST_DATABASE_URL=postgresql://... python -m pytest -m "not live"   # the same suite on Postgres
 python -m zaldi evals all                                         # search quality and attack resistance gate
-python scripts/check_marketplaces.py                              # connectors on recorded responses
+python scripts/check_marketplaces.py                              # connectors on documented shapes and a simulated marketplace over HTTP
 ```
 
 GitHub Actions: **CI and Build** runs the backend tests and builds the frontend on every push and pull request. **Test and deploy**
@@ -309,7 +310,7 @@ set the address in **Server -> Database**, **Copy my data**, restart. Step by st
 ## Status and limitations
 
 -   **Postgres** works and the whole suite passes on it, but the hosted API only uses it once `DATABASE_URL` (or a saved address) is set.
--   **Amazon and Flipkart** are tested against recorded responses only.
+-   **Amazon and Flipkart** are tested against documented sample shapes and a simulated server over real HTTP, not against live accounts.
 -   **Live agent evaluation** is one run of one model (Groq); Gemini was not measured because its free daily quota was used up.
 -   **Connected shops are read-only:** shoppers buy on the shop itself. There is no payment gateway; the built-in checkout stops at the
     shopper's confirmation.

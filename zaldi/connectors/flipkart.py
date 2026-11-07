@@ -1,14 +1,20 @@
 """Flipkart connector (Flipkart Affiliate API). Catalogue and link-out only.
 
 Needs a Flipkart Affiliate account: your Affiliate Tracking ID and API token, sent as the ``Fk-Affiliate-Id`` and ``Fk-Affiliate-Token``
-headers. Every card links to Flipkart's own page (``productUrl``) and says "from Flipkart"; nothing is added to a cart or ordered here.
+headers. Every card links to Flipkart's own page (``productUrl``, which already carries your affiliate id) and says "from Flipkart";
+nothing is added to a cart or ordered here.
 
-STATUS: written from Flipkart's published API pages (base ``https://affiliate-api.flipkart.net/affiliate/``, search at
-``1.0/search.json?query=...&resultCount=...``, product at ``product/json?id=...``). The published reference showed the product feed's
-field names (``productBaseInfoV1`` with ``productId``, ``title``, ``imageUrls``, ``flipkartSellingPrice``, ``maximumRetailPrice``,
-``productUrl``, ``inStock``, ``categoryPath``) but not the search response itself, so the parser accepts the list under ``products`` or
-``productInfoList`` and both ``productBaseInfoV1`` and ``productBaseInfo.productAttributes``. Tested against recorded samples only: run
-``python scripts/check_marketplaces.py --live`` with real keys to print the true response shape.
+Built from Flipkart's Product APIs reference (base ``https://affiliate-api.flipkart.net/affiliate``):
+
+* **Search:** ``GET 1.0/search.json?query=...&resultCount=...`` (at most 10 results). Response: ``productInfoList[]`` whose items have
+  ``productBaseInfoV1`` (``productId``, ``title``, ``productDescription``, ``imageUrls`` keyed by size, ``maximumRetailPrice``,
+  ``flipkartSellingPrice``, ``flipkartSpecialPrice``, ``productUrl``, ``productBrand``, ``inStock``, ``categoryPath`` as a JSON string,
+  ``attributes.{size,color}``).
+* **Product by id:** ``GET 1.0/product.json?id=...``; the response is the ``productBaseInfoV1`` block itself.
+* The older (legacy) shape, ``productBaseInfo.{productIdentifier, productAttributes}`` with ``sellingPrice``, is read too.
+
+STATUS: tested against responses shaped like the documentation's samples, not against live Flipkart (no affiliate account was available).
+Check yours with ``python scripts/check_marketplaces.py --live``, which prints the real response shape.
 """
 import json
 import time
@@ -22,23 +28,31 @@ from zaldi.errors import ValidationError
 API_BASE = "https://affiliate-api.flipkart.net/affiliate"
 TIMEOUT = 12
 CACHE_TTL = 600
+MAX_RESULTS = 10  # the API returns at most ten products per search
 IMAGE_SIZES = ("800x800", "400x400", "200x200")
 
 
 def _image(urls) -> str | None:
     if isinstance(urls, dict):
-        return next((urls[s] for s in IMAGE_SIZES if urls.get(s)), next(iter(urls.values()), None))
+        return next((urls[s] for s in IMAGE_SIZES if urls.get(s)), next((v for v in urls.values() if v), None))
     return urls[0] if isinstance(urls, list) and urls else urls if isinstance(urls, str) else None
 
 
 def _category(path) -> str:
-    """``categoryPath`` is a JSON-encoded string in the feed (a list of ``{"title": ...}`` groups) or plain ``A>B>C`` text."""
+    """The last step of the category path. The current API sends it as a JSON string of nested lists of ``{"title": ...}``, the legacy one as
+    nested lists already, and some feeds as plain ``A>B>C`` text."""
     if isinstance(path, str):
         try:
             path = json.loads(path)
         except ValueError:
             return path.split(">")[-1].strip()
-    flat = [step.get("title", "") for group in (path if isinstance(path, list) else []) for step in (group if isinstance(group, list) else [group]) if isinstance(step, dict)]
+
+    def titles(node):
+        if isinstance(node, dict):
+            return [str(node["title"])] if node.get("title") else []
+        return [t for child in node for t in titles(child)] if isinstance(node, list) else []
+
+    flat = titles(path)
     return flat[-1] if flat else ""
 
 
@@ -75,29 +89,35 @@ class FlipkartStore:
 
     @staticmethod
     def _base(item: dict) -> dict:
+        """The block with the product's fields: ``productBaseInfoV1`` (current), or ``productBaseInfo.productAttributes`` (legacy)."""
         return dig_any(item, "productBaseInfoV1", "productBaseInfo.productAttributes", default=item)
 
     def _card(self, item) -> dict | None:
         if not isinstance(item, dict):
             return None
         b = self._base(item)
+        attributes = b.get("attributes") if isinstance(b.get("attributes"), dict) else {}
+        stock = b.get("inStock")
         return make_card(
-            (dig_any(b, "productId", "id") or item.get("productId")), dig_any(b, "title", "productTitle"),
+            dig_any(b, "productId", "id") or dig(item, "productBaseInfo.productIdentifier.productId") or item.get("productId"),
+            dig_any(b, "title", "productTitle"),
             dig_any(b, "flipkartSpecialPrice.amount", "flipkartSellingPrice.amount", "sellingPrice.amount", "maximumRetailPrice.amount"),
-            dig_any(b, "flipkartSellingPrice.currency", "maximumRetailPrice.currency", default="INR"),
-            category=_category(b.get("categoryPath")), brand=b.get("productBrand") or "", image=_image(b.get("imageUrls")),
-            url=b.get("productUrl"), description=b.get("productDescription") or "", in_stock=b.get("inStock") if isinstance(b.get("inStock"), bool) else None,
-            source="Flipkart")
+            dig_any(b, "flipkartSpecialPrice.currency", "flipkartSellingPrice.currency", "sellingPrice.currency", "maximumRetailPrice.currency", default="INR"),
+            category=_category(b.get("categoryPath") or dig(item, "productBaseInfo.productIdentifier.categoryPaths.categoryPath")),
+            brand=b.get("productBrand") or "", image=_image(b.get("imageUrls")), url=b.get("productUrl"), description=b.get("productDescription") or "",
+            in_stock=stock if isinstance(stock, bool) else None, source="Flipkart",
+            color=str(attributes.get("color") or b.get("color") or ""), size=str(attributes.get("size") or b.get("size") or ""))
 
     def search_products(self, session_id: str, query: str, filters: dict | None = None, limit: int = 6) -> dict:
-        data = self._get("/1.0/search.json", {"query": (query or "").strip() or "bestseller", "resultCount": 10})
-        items = dig_any(data, "products", "productInfoList", default=[])
+        data = self._get("/1.0/search.json", {"query": (query or "").strip() or "bestseller", "resultCount": MAX_RESULTS})
+        items = dig_any(data, "productInfoList", "products", default=[])
         cards = [c for c in (self._card(i) for i in items) if c]
-        return {"products": rank(cards, query or "", filters, limit) if (query or "").strip() else cards[:limit], "relaxed": []}
+        return {"products": rank(cards, query or "", filters, limit) if (query or "").strip() or filters else cards[:limit], "relaxed": []}
 
     def get_product(self, product_id) -> dict | None:
         try:
-            data = self._get("/product/json", {"id": str(product_id)})
+            data = self._get("/1.0/product.json", {"id": str(product_id)})
         except ValidationError:
             return None
-        return self._card(dig(data, "productInfo") or dig(data, "product") or data)
+        first = (data.get("productInfoList") or [None])[0] if isinstance(data, dict) and data.get("productInfoList") else None
+        return self._card(first or data)

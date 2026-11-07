@@ -3,10 +3,26 @@
   "items": [
    {
     "asin": "B0KURTA001",
-    "detailPageUrl": "https://www.amazon.in/dp/B0KURTA001?tag=zaldi-21",
+    "detailPageURL": "https://www.amazon.in/dp/B0KURTA001?tag=zaldi-21&linkCode=osi",
+    "images": {
+     "primary": {
+      "large": {
+       "url": "https://m.media-amazon.com/images/I/kurta-large.jpg",
+       "height": 500,
+       "width": 400
+      },
+      "medium": {
+       "url": "https://m.media-amazon.com/images/I/kurta-medium.jpg",
+       "height": 250,
+       "width": 200
+      }
+     }
+    },
     "itemInfo": {
      "title": {
-      "displayValue": "Cotton Straight Kurta for Women"
+      "displayValue": "Cotton Straight Kurta for Women",
+      "label": "title",
+      "locale": "en_IN"
      },
      "byLineInfo": {
       "brand": {
@@ -21,19 +37,121 @@
       ]
      }
     },
+    "offersV2": {
+     "listings": [
+      {
+       "availability": {
+        "type": "IN_STOCK",
+        "maxOrderQuantity": 5,
+        "minOrderQuantity": 1
+       },
+       "isBuyBoxWinner": false,
+       "merchantInfo": {
+        "name": "Other seller"
+       },
+       "price": {
+        "money": {
+         "amount": 849.0,
+         "currency": "INR",
+         "displayAmount": "₹849.00"
+        }
+       },
+       "type": "STANDARD",
+       "violatesMAP": false
+      },
+      {
+       "availability": {
+        "type": "IN_STOCK",
+        "maxOrderQuantity": 5,
+        "minOrderQuantity": 1
+       },
+       "isBuyBoxWinner": true,
+       "merchantInfo": {
+        "name": "Appario Retail"
+       },
+       "price": {
+        "money": {
+         "amount": 799.0,
+         "currency": "INR",
+         "displayAmount": "₹799.00"
+        },
+        "savings": {
+         "money": {
+          "amount": 200.0,
+          "currency": "INR",
+          "displayAmount": "₹200.00"
+         },
+         "percentage": 20
+        }
+       },
+       "type": "STANDARD",
+       "violatesMAP": false
+      }
+     ]
+    }
+   },
+   {
+    "asin": "B0SAREE002",
+    "detailPageURL": "https://www.amazon.in/dp/B0SAREE002?tag=zaldi-21&linkCode=osi",
     "images": {
      "primary": {
-      "large": {
-       "url": "https://m.media-amazon.com/images/I/kurta1.jpg"
+      "medium": {
+       "url": "https://m.media-amazon.com/images/I/saree-medium.jpg",
+       "height": 250,
+       "width": 200
+      }
+     }
+    },
+    "itemInfo": {
+     "title": {
+      "displayValue": "Banarasi Silk Saree with Blouse Piece",
+      "label": "title",
+      "locale": "en_IN"
+     },
+     "byLineInfo": {
+      "brand": {
+       "displayValue": "Kanchi Looms"
       }
      }
     },
     "offersV2": {
      "listings": [
       {
+       "availability": {
+        "type": "IN_STOCK"
+       },
+       "isBuyBoxWinner": true,
        "price": {
         "money": {
-         "amount": 799.0,
+         "amount": 3499.0,
+         "currency": "INR",
+         "displayAmount": "₹3,499.00"
+        }
+       }
+      }
+     ]
+    }
+   },
+   {
+    "asin": "B0SOLDOUT3",
+    "detailPageURL": "https://www.amazon.in/dp/B0SOLDOUT3?tag=zaldi-21&linkCode=osi",
+    "itemInfo": {
+     "title": {
+      "displayValue": "Printed Cotton Dupatta",
+      "label": "title",
+      "locale": "en_IN"
+     }
+    },
+    "offersV2": {
+     "listings": [
+      {
+       "availability": {
+        "type": "OUT_OF_STOCK"
+       },
+       "isBuyBoxWinner": true,
+       "price": {
+        "money": {
+         "amount": 349.0,
          "currency": "INR"
         }
        }
@@ -42,49 +160,18 @@
     }
    },
    {
-    "asin": "B0SAREE002",
-    "detailPageUrl": "https://www.amazon.in/dp/B0SAREE002?tag=zaldi-21",
-    "itemInfo": {
-     "title": {
-      "displayValue": "Banarasi Silk Saree with Blouse Piece"
-     },
-     "byLineInfo": {
-      "brand": {
-       "displayValue": "Kanchi Looms"
-      }
-     }
-    },
-    "images": {
-     "primary": {
-      "large": {
-       "url": "https://m.media-amazon.com/images/I/saree2.jpg"
-      }
-     }
-    },
-    "offersV2": {
-     "listings": [
-      {
-       "price": {
-        "amount": 3499.0,
-        "currency": "INR"
-       }
-      }
-     ]
-    }
-   },
-   {
-    "ASIN": "B0OLDSTYLE3",
-    "DetailPageURL": "https://www.amazon.in/dp/B0OLDSTYLE3?tag=zaldi-21",
+    "ASIN": "B0OLDSTYLE4",
+    "DetailPageURL": "https://www.amazon.in/dp/B0OLDSTYLE4?tag=zaldi-21",
     "ItemInfo": {
      "Title": {
-      "DisplayValue": "Printed Cotton Dupatta"
+      "DisplayValue": "Handloom Cotton Stole"
      }
     },
     "Offers": {
      "Listings": [
       {
        "Price": {
-        "Amount": 349.0,
+        "Amount": 499.0,
         "Currency": "INR"
        }
       }
@@ -92,14 +179,16 @@
     }
    },
    {
-    "asin": "B0NOPRICE4",
-    "detailPageUrl": "https://www.amazon.in/dp/B0NOPRICE4",
+    "asin": "B0NOOFFER5",
+    "detailPageURL": "https://www.amazon.in/dp/B0NOOFFER5",
     "itemInfo": {
      "title": {
       "displayValue": "Item without an offer"
      }
     }
    }
-  ]
+  ],
+  "searchURL": "https://www.amazon.in/s/?field-keywords=kurta&tag=zaldi-21",
+  "totalResultCount": 146
  }
 }

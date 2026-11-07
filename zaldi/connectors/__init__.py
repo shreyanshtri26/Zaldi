@@ -35,7 +35,7 @@ def build_connector(values: dict) -> StoreConnector:
         from zaldi.connectors.amazon import AmazonStore
 
         return AmazonStore(values["amazon_credential_id"], values["amazon_credential_secret"], values["amazon_partner_tag"],
-                           values["amazon_token_url"], values.get("amazon_marketplace") or "www.amazon.in")
+                           values.get("amazon_token_url") or "", values.get("amazon_marketplace") or "www.amazon.in")
     if kind == "flipkart":
         from zaldi.connectors.flipkart import FlipkartStore
 

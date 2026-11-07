@@ -18,7 +18,7 @@ const FIELDS = {
   rest: [["rest_config", "API mapping (JSON)", "Search address with {query}, and which fields hold the name, price, image and link. See the README for an example", true]],
   links: [["link_urls", "Product page links", "One https link per line (up to 50). Pages must publish standard product data", false], ["feed_label", "Name shown on cards", "Optional", false]],
   amazon: [["amazon_credential_id", "Credential ID", "From your Amazon Associates Creators API credentials", true], ["amazon_credential_secret", "Credential secret", "Shown once when you create the credential", true],
-    ["amazon_partner_tag", "Partner tag", "Your tracking id, for example yourname-21", false], ["amazon_token_url", "Token address", "Copy it from the credentials page (https://...)", false],
+    ["amazon_partner_tag", "Partner tag", "Your tracking id, for example yourname-21", false], ["amazon_token_url", "Token address", "Optional. Leave empty and Zaldi uses the right one for your marketplace", false],
     ["amazon_marketplace", "Marketplace", "Default www.amazon.in", false]],
   flipkart: [["flipkart_affiliate_id", "Affiliate tracking ID", "From affiliate.flipkart.com", false], ["flipkart_token", "API token", "Dashboard > API > API Token", true]],
   local: [],

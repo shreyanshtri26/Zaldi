@@ -140,105 +140,186 @@ def test_amazon_and_flipkart_pages_are_not_read_directly():
 
 
 # --- Amazon -------------------------------------------------------------------------------------------------------------------------------
-TOKEN = "https://auth.amazon.test/token"
+EU_TOKEN = "https://api.amazon.co.uk/auth/o2/token"  # the token address for India in Amazon's documentation
+SEARCH_URL = "https://creatorsapi.amazon/catalog/v1/searchItems"
 
 
-def amazon_store(**routes):
-    http = FakeHttp({TOKEN: {"access_token": "tok-1", "expires_in": 3600}, "https://creatorsapi.amazon/catalog/v1/searchItems": fixture("amazon_search.json"), **routes})
-    return AmazonStore("cred-id", "cred-secret", "zaldi-21", TOKEN, http=http), http
+def amazon_store(marketplace="www.amazon.in", token_url="", **routes):
+    http = FakeHttp({EU_TOKEN: {"access_token": "tok-1", "expires_in": 3600}, SEARCH_URL: fixture("amazon_search.json"), **routes})
+    return AmazonStore("cred-id", "cred-secret", "zaldi-21", token_url, marketplace, http=http), http
 
 
-def test_amazon_meets_the_contract_and_links_out_with_the_partner_tag():
+class Sequence(FakeHttp):
+    """Answers each URL from a list, one answer per call, so a test can script a 401 followed by a success."""
+
+    def __init__(self, answers):
+        super().__init__({})
+        self.answers = {k: list(v) for k, v in answers.items()}
+
+    def _answer(self, method, url, **kw):
+        from tests.fakes import Response
+
+        self.calls.append((method, url, kw))
+        body, status = self.answers[url].pop(0) if len(self.answers[url]) > 1 else self.answers[url][0]
+        return Response(body, status)
+
+
+def test_amazon_meets_the_contract_and_reads_the_documented_response():
     store, http = amazon_store()
     cards = check_connector(store, query="kurta")
-    assert cards[0]["product_name"] == "Cotton Straight Kurta for Women" and cards[0]["source"] == "Amazon" and "tag=zaldi-21" in cards[0]["buy_url"]
-    assert (cards[0]["price"], cards[0]["brand"]) == (799.0, "Jaipur Prints") and "Machine washable" in cards[0]["description"]
-    search = next(c for c in http.calls if c[1].endswith("searchItems"))
-    assert search[2]["headers"]["Authorization"] == "Bearer tok-1" and search[2]["headers"]["x-marketplace"] == "www.amazon.in"
-    assert search[2]["json"]["partnerTag"] == "zaldi-21" and search[2]["json"]["keywords"] == "kurta"
+    kurta = next(c for c in cards if c["product_name"].startswith("Cotton Straight"))
+    assert kurta["source"] == "Amazon" and kurta["buy_url"] == "https://www.amazon.in/dp/B0KURTA001?tag=zaldi-21&linkCode=osi"  # detailPageURL, with the tag
+    assert (kurta["price"], kurta["currency"], kurta["brand"]) == (799.0, "INR", "Jaipur Prints")  # the buy-box winner's price, not the first listing's
+    assert kurta["image_url"].endswith("kurta-large.jpg") and "Machine washable" in kurta["description"] and kurta["stock_quantity"] is None
 
 
-def test_amazon_reads_both_response_spellings_and_skips_items_without_an_offer():
+def test_amazon_falls_back_to_a_smaller_picture_marks_sold_out_items_and_drops_items_without_an_offer():
     store, _ = amazon_store()
-    names = [c["product_name"] for c in store.search_products("s", "")["products"]]
-    assert names == ["Cotton Straight Kurta for Women", "Banarasi Silk Saree with Blouse Piece", "Printed Cotton Dupatta"]  # the PA-API style item is read, the one with no price is not
+    by_name = {c["product_name"]: c for c in store.search_products("s", "")["products"]}
+    assert by_name["Banarasi Silk Saree with Blouse Piece"]["image_url"].endswith("saree-medium.jpg")
+    assert by_name["Printed Cotton Dupatta"]["stock_quantity"] == 0 and by_name["Printed Cotton Dupatta"]["image_url"] is None
+    assert by_name["Handloom Cotton Stole"]["price"] == 499.0  # the retired PA-API spelling is still understood
+    assert "Item without an offer" not in by_name and len(by_name) == 4
 
 
-def test_amazon_signs_in_once_and_refreshes_an_expired_token():
+def test_amazon_signs_in_with_the_documented_request_and_sends_the_documented_search():
+    store, http = amazon_store()
+    store.search_products("s", "kurta")
+    token_call = next(c for c in http.calls if c[1] == EU_TOKEN)
+    assert token_call[2]["json"] == {"grant_type": "client_credentials", "client_id": "cred-id", "client_secret": "cred-secret", "scope": "creatorsapi::default"}
+    assert token_call[2]["headers"]["Content-Type"] == "application/json"
+    search = next(c for c in http.calls if c[1] == SEARCH_URL)
+    assert search[2]["headers"] == {"Authorization": "Bearer tok-1", "x-marketplace": "www.amazon.in", "Content-Type": "application/json"}
+    body = search[2]["json"]
+    assert (body["keywords"], body["partnerTag"], body["marketplace"], body["itemCount"]) == ("kurta", "zaldi-21", "www.amazon.in", 10)
+    assert "images.primary.large" in body["resources"] and "offersV2.listings.price" in body["resources"] and "sortBy" not in body
+
+
+def test_amazon_asks_for_the_sort_and_price_range_in_the_currencys_smallest_unit():
+    store, http = amazon_store()
+    store.search_products("s", "kurta", {"sort": "price_asc", "min_price": 500, "max_price": 4000})
+    body = next(c for c in http.calls if c[1] == SEARCH_URL)[2]["json"]
+    assert (body["sortBy"], body["minPrice"], body["maxPrice"]) == ("Price:LowToHigh", 50000, 400000)  # rupees to paise
+    for intent, name in (("price_desc", "Price:HighToLow"), ("rating", "AvgCustomerReviews")):
+        s2, h2 = amazon_store()
+        s2.search_products("s", "kurta", {"sort": intent})
+        assert next(c for c in h2.calls if c[1] == SEARCH_URL)[2]["json"]["sortBy"] == name
+    yen, h3 = amazon_store("www.amazon.co.jp", **{TOKEN_FE: {"access_token": "t", "expires_in": 3600}})
+    yen.search_products("s", "kurta", {"max_price": 4000})
+    assert next(c for c in h3.calls if c[1] == SEARCH_URL)[2]["json"]["maxPrice"] == 4000  # yen has no smaller unit
+
+
+TOKEN_FE = "https://api.amazon.co.jp/auth/o2/token"
+
+
+@pytest.mark.parametrize("marketplace, expected", [
+    ("www.amazon.in", "https://api.amazon.co.uk/auth/o2/token"), ("www.amazon.co.uk", "https://api.amazon.co.uk/auth/o2/token"), ("www.amazon.de", "https://api.amazon.co.uk/auth/o2/token"),
+    ("www.amazon.com", "https://api.amazon.com/auth/o2/token"), ("www.amazon.ca", "https://api.amazon.com/auth/o2/token"), ("www.amazon.com.br", "https://api.amazon.com/auth/o2/token"),
+    ("www.amazon.co.jp", "https://api.amazon.co.jp/auth/o2/token"), ("www.amazon.com.au", "https://api.amazon.co.jp/auth/o2/token"), ("www.amazon.sg", "https://api.amazon.co.jp/auth/o2/token"),
+    ("www.amazon.unknown", "https://api.amazon.com/auth/o2/token"),
+])
+def test_the_token_address_follows_the_marketplaces_region_unless_one_is_given(marketplace, expected):
+    from zaldi.connectors.amazon import token_url_for
+
+    assert token_url_for(marketplace) == expected
+    assert AmazonStore("a", "b", "c", "", marketplace).token_url == expected
+    assert AmazonStore("a", "b", "c", "https://auth.example.test/token", marketplace).token_url == "https://auth.example.test/token"
+
+
+def test_amazon_signs_in_once_and_signs_in_again_if_the_token_was_refused():
     store, http = amazon_store()
     store.search_products("s", "kurta")
     store.search_products("s", "saree")
-    assert sum(c[1] == TOKEN for c in http.calls) == 1
-    calls = {"n": 0}
-    real_post = http.post
-
-    def expiring(url, **kw):
-        if url.endswith("searchItems"):
-            calls["n"] += 1
-            if calls["n"] == 1:
-                return type(real_post(TOKEN), "r", (), {})  # placeholder, replaced below
-        return real_post(url, **kw)
-
-    first = FakeHttp({TOKEN: {"access_token": "t", "expires_in": 3600}, "https://creatorsapi.amazon/catalog/v1/searchItems": (fixture("amazon_search.json"), 200)})
-    answers = iter([("expired", 401), (fixture("amazon_search.json"), 200)])
-    orig = first._answer
-
-    def seq(method, url, **kw):
-        if url.endswith("searchItems"):
-            first.calls.append((method, url, kw))
-            from tests.fakes import Response
-            body, status = next(answers)
-            return Response(body, status)
-        return orig(method, url, **kw)
-
-    first._answer = seq
-    store2 = AmazonStore("a", "b", "tag", TOKEN, http=first)
-    assert store2.search_products("s", "kurta")["products"]
-    assert sum(c[1] == TOKEN for c in first.calls) == 2  # signed in again after the 401
+    assert sum(c[1] == EU_TOKEN for c in http.calls) == 1 and sum(c[1] == SEARCH_URL for c in http.calls) == 2
+    seq = Sequence({EU_TOKEN: [({"access_token": "old", "expires_in": 3600}, 200), ({"access_token": "new", "expires_in": 3600}, 200)],
+                    SEARCH_URL: [("expired", 401), (fixture("amazon_search.json"), 200)]})
+    again = AmazonStore("a", "b", "tag", "", "www.amazon.in", http=seq)
+    assert again.search_products("s", "kurta")["products"]
+    assert sum(c[1] == EU_TOKEN for c in seq.calls) == 2 and [c[2]["headers"]["Authorization"] for c in seq.calls if c[1] == SEARCH_URL] == ["Bearer old", "Bearer new"]
 
 
-def test_amazon_explains_bad_credentials_and_needs_all_settings():
-    store, _ = amazon_store(**{TOKEN: ("denied", 401)})
+def test_amazon_repeats_no_request_it_has_just_made_and_explains_bad_credentials():
+    store, http = amazon_store()
+    store.search_products("s", "kurta")
+    store.search_products("s", "kurta")
+    assert sum(c[1] == SEARCH_URL for c in http.calls) == 1
+    refused, _ = amazon_store(**{EU_TOKEN: ("denied", 401)})
     with pytest.raises(ValidationError, match="sign in to Amazon"):
-        store.search_products("s", "kurta")
+        refused.search_products("s", "kurta")
     with pytest.raises(ValueError, match="required"):
-        AmazonStore("", "", "", "")
+        AmazonStore("", "", "")
 
 
-def test_amazon_get_product_by_asin():
+def test_amazon_get_product_by_asin_and_a_failure_is_just_not_found():
     store, _ = amazon_store(**{"https://creatorsapi.amazon/catalog/v1/getItems": {"itemsResult": {"items": fixture("amazon_search.json")["searchResult"]["items"][:1]}}})
     assert store.get_product("B0KURTA001")["price"] == 799.0
     assert amazon_store(**{"https://creatorsapi.amazon/catalog/v1/getItems": ("x", 500)})[0].get_product("B0") is None
 
 
 # --- Flipkart -------------------------------------------------------------------------------------------------------------------------------
-def flipkart_store():
-    http = FakeHttp({"https://affiliate-api.flipkart.net/affiliate/1.0/search.json": fixture("flipkart_search.json")})
+FK = "https://affiliate-api.flipkart.net/affiliate"
+
+
+class FlipkartHttp(FakeHttp):
+    """Like the real API, the product endpoint knows one product and answers 404 for any other id."""
+
+    def get(self, url, **kw):
+        if url.endswith("/1.0/product.json") and kw.get("params", {}).get("id") != "SRIFKURTA1" and not isinstance(self.routes.get(url), tuple):
+            self.calls.append(("GET", url, kw))
+            from tests.fakes import Response
+
+            return Response("not found", 404)
+        return super().get(url, **kw)
+
+
+def flipkart_store(**routes):
+    http = FlipkartHttp({f"{FK}/1.0/search.json": fixture("flipkart_search.json"), f"{FK}/1.0/product.json": fixture("flipkart_product.json"), **routes})
     return FlipkartStore("zaldi-aff", "secret-token", http=http), http
 
 
-def test_flipkart_meets_the_contract_and_sends_the_affiliate_headers():
+def test_flipkart_meets_the_contract_and_reads_the_documented_response():
     store, http = flipkart_store()
     cards = check_connector(store, query="kurta")
     kurta = next(c for c in cards if "Kurta" in c["product_name"])
-    assert (kurta["price"], kurta["category"], kurta["brand"], kurta["source"]) == (1299.0, "Kurtas", "Lucknowi Loom", "Flipkart")
-    assert kurta["image_url"].endswith("/800/kurta.jpeg") and "affid=zaldi" in kurta["buy_url"]
-    assert http.calls[0][2]["headers"] == {"Fk-Affiliate-Id": "zaldi-aff", "Fk-Affiliate-Token": "secret-token"}
-    assert http.calls[0][2]["params"]["query"] == "kurta"
+    assert (kurta["price"], kurta["category"], kurta["brand"], kurta["source"], kurta["color"], kurta["size"]) == (1199.0, "Kurtas", "Lucknowi Loom", "Flipkart", "White", "M")
+    assert kurta["image_url"].endswith("/800/kurta.jpeg") and kurta["buy_url"].endswith("affid=zaldi")  # the special price, the biggest picture, the untouched affiliate link
+    assert kurta["description"] == "Hand embroidered straight kurta" and kurta["stock_quantity"] is None
 
 
-def test_flipkart_prefers_the_special_price_and_marks_out_of_stock_and_reads_the_older_shape():
+def test_flipkart_sends_the_documented_search_with_the_affiliate_headers():
+    store, http = flipkart_store()
+    store.search_products("s", "kurta")
+    call = http.calls[0]
+    assert call[1] == f"{FK}/1.0/search.json" and call[2]["params"] == {"query": "kurta", "resultCount": 10}
+    assert call[2]["headers"] == {"Fk-Affiliate-Id": "zaldi-aff", "Fk-Affiliate-Token": "secret-token"}
+
+
+def test_flipkart_handles_special_prices_missing_pictures_stock_and_the_legacy_shape():
     store, _ = flipkart_store()
     by_name = {c["product_name"]: c for c in store.search_products("s", "")["products"]}
-    assert by_name["Kanjivaram Silk Saree"]["price"] == 6499.0 and by_name["Kanjivaram Silk Saree"]["stock_quantity"] == 0
-    assert by_name["Kanjivaram Silk Saree"]["category"] == "Sarees"
-    assert by_name["Old Style Jutti"]["price"] == 599.0
+    saree = by_name["Kanjivaram Silk Saree"]
+    assert saree["price"] == 6499.0 and saree["stock_quantity"] == 0 and saree["category"] == "Sarees" and saree["image_url"].endswith("/unknown/saree.jpeg")
+    jutti = by_name["Handmade Leather Jutti"]  # the older response shape
+    assert (jutti["id"], jutti["price"], jutti["category"], jutti["color"], jutti["size"], jutti["brand"]) == ("LEGACYJUTTI3", 599.0, "Juttis", "Brown", "8", "Kolhapur Craft")
+    assert "Item without a price" not in by_name and len(by_name) == 3
 
 
-def test_flipkart_explains_a_refused_token():
-    http = FakeHttp({"https://affiliate-api.flipkart.net": ("no", 403)})
+def test_flipkart_get_product_uses_the_current_endpoint_and_a_failure_is_just_not_found():
+    store, http = flipkart_store()
+    card = store.get_product("SRIFKURTA1")
+    assert card["product_name"] == "Chikankari Cotton Kurta" and card["price"] == 1199.0
+    call = http.calls[0]
+    assert call[1] == f"{FK}/1.0/product.json" and call[2]["params"] == {"id": "SRIFKURTA1"}
+    assert flipkart_store(**{f"{FK}/1.0/product.json": ("nope", 404)})[0].get_product("x") is None
+
+
+def test_flipkart_explains_a_refused_token_and_remembers_a_search_it_just_made():
+    store, http = flipkart_store()
+    store.search_products("s", "kurta")
+    store.search_products("s", "kurta")
+    assert len(http.calls) == 1
     with pytest.raises(ValidationError, match="refused"):
-        FlipkartStore("a", "b", http=http).search_products("s", "kurta")
+        FlipkartStore("a", "b", http=FakeHttp({FK: ("no", 403)})).search_products("s", "kurta")
     with pytest.raises(ValueError, match="required"):
         FlipkartStore("", "")
 
@@ -246,7 +327,7 @@ def test_flipkart_explains_a_refused_token():
 # --- wiring + the admin's Test checklist -----------------------------------------------------------------------------------------------------
 def test_every_connector_is_built_from_settings_and_declares_its_level():
     values = {"feed_url": str(FIXTURES / "feed.csv"), "rest_config": json.dumps(MAPPING), "link_urls": "https://shop.test/a",
-              "amazon_credential_id": "i", "amazon_credential_secret": "s", "amazon_partner_tag": "t", "amazon_token_url": TOKEN,
+              "amazon_credential_id": "i", "amazon_credential_secret": "s", "amazon_partner_tag": "t",
               "flipkart_affiliate_id": "a", "flipkart_token": "t"}
     built = {k: build_connector({"connector": k, **values}) for k in ("feed", "rest", "links", "amazon", "flipkart")}
     assert {k: v.name for k, v in built.items()} == {"feed": "feed", "rest": "rest", "links": "links", "amazon": "amazon", "flipkart": "flipkart"}

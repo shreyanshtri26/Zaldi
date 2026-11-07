@@ -1,5 +1,5 @@
 {
- "products": [
+ "productInfoList": [
   {
    "productBaseInfoV1": {
     "productId": "SRIFKURTA1",
@@ -7,8 +7,11 @@
     "productDescription": "Hand embroidered straight kurta",
     "imageUrls": {
      "200x200": "https://rukminim2.flixcart.com/s/200/kurta.jpeg",
+     "400x400": "https://rukminim2.flixcart.com/s/400/kurta.jpeg",
+     "unknown": "https://rukminim2.flixcart.com/s/unknown/kurta.jpeg",
      "800x800": "https://rukminim2.flixcart.com/s/800/kurta.jpeg"
     },
+    "productFamily": null,
     "maximumRetailPrice": {
      "amount": 1999,
      "currency": "INR"
@@ -17,10 +20,39 @@
      "amount": 1299,
      "currency": "INR"
     },
-    "productUrl": "https://dl.flipkart.com/dl/chikankari-kurta/p/itmkurta1?pid=SRIFKURTA1&affid=zaldi",
+    "flipkartSpecialPrice": {
+     "amount": 1199,
+     "currency": "INR"
+    },
+    "productUrl": "http://dl.flipkart.com/dl/chikankari-kurta/p/itmkurta1?pid=SRIFKURTA1&affid=zaldi",
     "productBrand": "Lucknowi Loom",
     "inStock": true,
-    "categoryPath": "[[{\"title\": \"Clothing\"}, {\"title\": \"Kurtas\"}]]"
+    "codAvailable": true,
+    "discountPercentage": 40,
+    "offers": [],
+    "categoryPath": "[[{\"title\": \"Clothing\", \"nodeId\": \"1\"}, {\"title\": \"Women's Clothing\", \"nodeId\": \"2\"}, {\"title\": \"Kurtas\", \"nodeId\": \"3\"}]]",
+    "attributes": {
+     "size": "M",
+     "color": "White",
+     "storage": "",
+     "sizeUnit": "",
+     "displaySize": ""
+    }
+   },
+   "productShippingInfoV1": {
+    "shippingCharges": {
+     "amount": 0,
+     "currency": "INR"
+    },
+    "sellerName": "Loom Retail",
+    "sellerAverageRating": 4,
+    "sellerNoOfRatings": 31,
+    "sellerNoOfReviews": 5
+   },
+   "categorySpecificInfoV1": {
+    "keySpecs": [],
+    "detailedSpecs": [],
+    "specificationList": []
    }
   },
   {
@@ -28,34 +60,79 @@
     "productId": "SAREEFK2",
     "title": "Kanjivaram Silk Saree",
     "imageUrls": {
-     "400x400": "https://rukminim2.flixcart.com/s/400/saree.jpeg"
+     "unknown": "https://rukminim2.flixcart.com/s/unknown/saree.jpeg"
     },
     "maximumRetailPrice": {
      "amount": 8999,
+     "currency": "INR"
+    },
+    "flipkartSellingPrice": {
+     "amount": 7499,
      "currency": "INR"
     },
     "flipkartSpecialPrice": {
      "amount": 6499,
      "currency": "INR"
     },
-    "productUrl": "https://dl.flipkart.com/dl/kanjivaram/p/itmsaree2",
+    "productUrl": "http://dl.flipkart.com/dl/kanjivaram/p/itmsaree2?affid=zaldi",
     "productBrand": "Kanchi Looms",
     "inStock": false,
-    "categoryPath": "Clothing>Sarees"
+    "categoryPath": "[[{\"title\": \"Clothing\"}, {\"title\": \"Sarees\"}]]",
+    "attributes": {
+     "size": "",
+     "color": "Red"
+    }
    }
   },
   {
    "productBaseInfo": {
+    "productIdentifier": {
+     "productId": "LEGACYJUTTI3",
+     "categoryPaths": {
+      "categoryPath": [
+       [
+        {
+         "title": "Footwear"
+        },
+        {
+         "title": "Juttis"
+        }
+       ]
+      ]
+     }
+    },
     "productAttributes": {
-     "title": "Old Style Jutti",
-     "productUrl": "https://dl.flipkart.com/dl/jutti/p/itmjutti3",
+     "title": "Handmade Leather Jutti",
+     "productDescription": "Kolhapuri style jutti",
+     "imageUrls": {
+      "200x200": "https://rukminim2.flixcart.com/s/200/jutti.jpeg"
+     },
+     "maximumRetailPrice": {
+      "amount": 999,
+      "currency": "INR"
+     },
      "sellingPrice": {
       "amount": 599,
       "currency": "INR"
-     }
+     },
+     "productUrl": "http://dl.flipkart.com/dl/jutti/p/itmjutti3?affid=zaldi",
+     "productBrand": "Kolhapur Craft",
+     "inStock": true,
+     "color": "Brown",
+     "size": "8"
     }
    },
-   "productId": "x"
+   "productShippingBaseInfo": {
+    "shippingOptions": []
+   },
+   "offset": 0
+  },
+  {
+   "productBaseInfoV1": {
+    "productId": "NOPRICE4",
+    "title": "Item without a price",
+    "productUrl": "http://dl.flipkart.com/dl/x/p/itmx"
+   }
   }
  ]
 }

@@ -5,8 +5,8 @@ Thank you for helping. Zaldi is built to be understood, so small, well-tested ch
 ## Ways to help
 
 -   **Report a bug** or **suggest a feature** with the issue templates. For security problems, see [SECURITY.md](SECURITY.md) instead.
--   **Try Amazon or Flipkart** with real affiliate keys (`python scripts/check_marketplaces.py --live`) and tell us what the response looks
-    like: those connectors have only been tested against recorded samples.
+-   **Try Amazon or Flipkart** with real affiliate keys (`python scripts/check_marketplaces.py --live --record`) and tell us what the response
+    looks like: those connectors have not been run against live accounts.
 -   **Add a connector** for another platform ([docs/CONNECTORS.md](docs/CONNECTORS.md), section 7).
 -   **Add evaluation cases**: real shopper questions that went wrong make the best tests ([docs/EVALUATION.md](docs/EVALUATION.md)).
 -   **Improve the documentation.**

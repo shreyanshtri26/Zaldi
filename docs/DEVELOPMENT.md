@@ -43,7 +43,7 @@ python -m pytest -m "not live"                                    # the offline 
 ZALDI_TEST_DATABASE_URL=postgresql://... python -m pytest -m "not live"   # the same suite on Postgres
 python -m pytest -m live                                          # real model calls (needs keys and quota)
 python -m zaldi evals all                                         # search quality and attack resistance
-python scripts/check_marketplaces.py                              # connectors on recorded responses
+python scripts/check_marketplaces.py                              # connectors: documented shapes + a simulated marketplace over real HTTP
 ```
 
 -   Every test gets a throwaway data directory (`temp_db` in `tests/conftest.py`). On Postgres each test gets its own schema, dropped

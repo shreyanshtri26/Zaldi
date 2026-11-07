@@ -1,0 +1,40 @@
+{
+ "productBaseInfoV1": {
+  "productId": "SRIFKURTA1",
+  "title": "Chikankari Cotton Kurta",
+  "productDescription": "Hand embroidered straight kurta",
+  "imageUrls": {
+   "200x200": "https://rukminim2.flixcart.com/s/200/kurta.jpeg",
+   "400x400": "https://rukminim2.flixcart.com/s/400/kurta.jpeg",
+   "unknown": "https://rukminim2.flixcart.com/s/unknown/kurta.jpeg",
+   "800x800": "https://rukminim2.flixcart.com/s/800/kurta.jpeg"
+  },
+  "productFamily": null,
+  "maximumRetailPrice": {
+   "amount": 1999,
+   "currency": "INR"
+  },
+  "flipkartSellingPrice": {
+   "amount": 1299,
+   "currency": "INR"
+  },
+  "flipkartSpecialPrice": {
+   "amount": 1199,
+   "currency": "INR"
+  },
+  "productUrl": "http://dl.flipkart.com/dl/chikankari-kurta/p/itmkurta1?pid=SRIFKURTA1&affid=zaldi",
+  "productBrand": "Lucknowi Loom",
+  "inStock": true,
+  "codAvailable": true,
+  "discountPercentage": 40,
+  "offers": [],
+  "categoryPath": "[[{\"title\": \"Clothing\", \"nodeId\": \"1\"}, {\"title\": \"Women's Clothing\", \"nodeId\": \"2\"}, {\"title\": \"Kurtas\", \"nodeId\": \"3\"}]]",
+  "attributes": {
+   "size": "M",
+   "color": "White",
+   "storage": "",
+   "sizeUnit": "",
+   "displaySize": ""
+  }
+ }
+}

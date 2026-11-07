@@ -2,9 +2,10 @@
 
     python scripts/check_marketplaces.py            # recorded sample responses, no keys needed
     python scripts/check_marketplaces.py --live     # your real keys from the environment / .env: prints the true response shape
+    python scripts/check_marketplaces.py --live --record   # also saves that shape (field names only) to evals/results/marketplace_shapes.json
 
-Live mode reads AMAZON_CREDENTIAL_ID, AMAZON_CREDENTIAL_SECRET, AMAZON_PARTNER_TAG, AMAZON_TOKEN_URL (and AMAZON_MARKETPLACE) and
-FLIPKART_AFFILIATE_ID, FLIPKART_TOKEN. It sends one search for "kurta" per marketplace, prints the response's top-level keys and the
+Live mode reads AMAZON_CREDENTIAL_ID, AMAZON_CREDENTIAL_SECRET, AMAZON_PARTNER_TAG (and AMAZON_MARKETPLACE, default www.amazon.in; the
+token address is chosen from the marketplace's region unless AMAZON_TOKEN_URL is set) and FLIPKART_AFFILIATE_ID, FLIPKART_TOKEN. It sends one search for "kurta" per marketplace, prints the response's top-level keys and the
 first item's keys (never your keys or tokens), then runs the connector on it and the same contract the tests use. If a field is
 missing, the printed shape shows which name the marketplace really uses; fix it in zaldi/connectors/amazon.py or flipkart.py.
 """
@@ -46,15 +47,38 @@ def run(label, store, query="kurta"):
 
 
 def offline() -> bool:
-    token = "https://auth.test/token"
-    amazon = AmazonStore("id", "secret", "tag-21", token, http=FakeHttp({token: {"access_token": "t", "expires_in": 3600},
-                                                                          "https://creatorsapi.amazon/catalog/v1/searchItems": fixture("amazon_search.json")}))
+    # No token address is given: it is chosen from the marketplace (India -> the EU token endpoint), as it will be with real keys.
+    amazon = AmazonStore("id", "secret", "tag-21", http=FakeHttp({"https://api.amazon.co.uk/auth/o2/token": {"access_token": "t", "expires_in": 3600},
+                                                                  "https://creatorsapi.amazon/catalog/v1/searchItems": fixture("amazon_search.json")}))
     flipkart = FlipkartStore("aff", "tok", http=FakeHttp({"https://affiliate-api.flipkart.net/affiliate/1.0/search.json": fixture("flipkart_search.json")}))
     feed = FeedStore(str(FIXTURES / "feed.csv"))
     links = LinkStore("https://shop.test/saree", http=FakeHttp({"https://shop.test/robots.txt": ("", 404), "https://shop.test/saree": fixture("product_page.html")}),
                       check_url=lambda u: u)
     print("Recorded responses:")
-    return all([run("Amazon", amazon), run("Flipkart", flipkart), run("Product feed", feed), run("Link pages", links, "saree")])
+    ok = all([run("Amazon", amazon), run("Flipkart", flipkart), run("Product feed", feed), run("Link pages", links, "saree")])
+    # The same connectors, over real HTTP with the real requests library, against a local server that speaks the documented protocols.
+    from tests.fakes import MarketplaceServer
+
+    print("Real HTTP against a simulated marketplace (checks token request, bearer token, marketplace and affiliate headers, parameters):")
+    with MarketplaceServer() as server:
+        ok &= all([run("Amazon", server.amazon()), run("Flipkart", server.flipkart())])
+        refused = _refused(server)
+    return ok and refused
+
+
+def _refused(server) -> bool:
+    """Wrong credentials must give a clear message, not a crash."""
+    from zaldi.errors import ValidationError
+
+    good = True
+    for label, store in (("Amazon with a wrong secret", server.amazon(secret="wrong")), ("Flipkart with a wrong token", server.flipkart(token="wrong"))):
+        try:
+            store.search_products("s", "kurta")
+            print(f"  FAIL  {label}: no error")
+            good = False
+        except ValidationError as exc:
+            print(f"  PASS  {label}: {exc}")
+    return good
 
 
 def live() -> bool:
@@ -62,20 +86,21 @@ def live() -> bool:
 
     ok, ran = True, False
     env = os.environ.get
-    if env("AMAZON_CREDENTIAL_ID") and env("AMAZON_TOKEN_URL"):
+    if env("AMAZON_CREDENTIAL_ID") and env("AMAZON_CREDENTIAL_SECRET") and env("AMAZON_PARTNER_TAG"):
         ran = True
         print("Amazon (live):")
         http = _Spy()
-        store = AmazonStore(env("AMAZON_CREDENTIAL_ID"), env("AMAZON_CREDENTIAL_SECRET", ""), env("AMAZON_PARTNER_TAG", ""), env("AMAZON_TOKEN_URL"),
+        store = AmazonStore(env("AMAZON_CREDENTIAL_ID"), env("AMAZON_CREDENTIAL_SECRET", ""), env("AMAZON_PARTNER_TAG", ""), env("AMAZON_TOKEN_URL", ""),
                             env("AMAZON_MARKETPLACE", "www.amazon.in"), http=http)
-        ok &= _report(store, http)
+        print(f"  token address: {store.token_url.split('//')[1].split('/')[0]} (marketplace {store.marketplace})")
+        ok &= _report("amazon", store, http)
     else:
-        print("Amazon: skipped (set AMAZON_CREDENTIAL_ID, AMAZON_CREDENTIAL_SECRET, AMAZON_PARTNER_TAG, AMAZON_TOKEN_URL)")
+        print("Amazon: skipped (set AMAZON_CREDENTIAL_ID, AMAZON_CREDENTIAL_SECRET, AMAZON_PARTNER_TAG)")
     if env("FLIPKART_AFFILIATE_ID") and env("FLIPKART_TOKEN"):
         ran = True
         print("Flipkart (live):")
         http = _Spy()
-        ok &= _report(FlipkartStore(env("FLIPKART_AFFILIATE_ID"), env("FLIPKART_TOKEN"), http=http), http)
+        ok &= _report("flipkart", FlipkartStore(env("FLIPKART_AFFILIATE_ID"), env("FLIPKART_TOKEN"), http=http), http)
     else:
         print("Flipkart: skipped (set FLIPKART_AFFILIATE_ID, FLIPKART_TOKEN)")
     return ok if ran else True
@@ -104,14 +129,23 @@ class _Spy:
         return self._wrap(self._r.post(*a, **k))
 
 
-def _report(store, http) -> bool:
+RECORDED: dict = {}
+
+
+def _report(name, store, http) -> bool:
     ok = run("contract", store)
     for status, s in http.shapes[:2]:
         print(f"  response shape (HTTP {status}):", json.dumps(s, indent=1)[:1500])
+    RECORDED[name] = [{"status": status, "shape": s} for status, s in http.shapes[:2]]
     return ok
 
 
 if __name__ == "__main__":
     good = live() if "--live" in sys.argv else offline()
+    if "--record" in sys.argv and RECORDED:
+        target = ROOT / "evals" / "results" / "marketplace_shapes.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(RECORDED, indent=1), encoding="utf-8")  # field names and types only: no keys, no prices, no product text
+        print(f"Saved the response shapes to {target.relative_to(ROOT)}")
     print("\nAll checks passed." if good else "\nSome checks failed: see above.")
     sys.exit(0 if good else 1)
